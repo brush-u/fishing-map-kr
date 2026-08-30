@@ -177,6 +177,57 @@ html, body {
   color: var(--muted);
 }
 
+#panel-to-region-view {
+  display: block;
+  margin: 0 0 10px;
+  border: 1px solid var(--border);
+  background: #f5f7fa;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+#panel-to-region-view:hover { background: #eaf2fb; }
+
+#tide-obscode-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+#tide-obscode {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+#tide-obscode-apply {
+  border: 1px solid var(--border);
+  background: #f5f7fa;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tide-hint { font-size: 11px; color: var(--muted); margin: 6px 0 0; }
+.tide-hint a { color: inherit; }
+
+.tide-raw {
+  font-size: 11px;
+  background: #f5f7fa;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 #panel h2 { margin: 0 24px 2px 0; font-size: 17px; }
 #panel-meta { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
 #panel section { margin-bottom: 16px; }

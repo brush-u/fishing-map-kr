@@ -70,9 +70,13 @@ npm start
 ### ① 공공데이터포털 API 키 발급 — 무료, 본인 계정 필요
 아래는 모두 [data.go.kr](https://www.data.go.kr) 회원가입 → 로그인 → 각 페이지에서 **"활용신청"** 클릭 → 보통 수 분~1일 내 자동/수동 승인 → "마이페이지 > 개발계정"에서 **일반 인증키(Encoding)** 복사.
 
-- [ ] [기상청_단기예보 조회서비스](https://www.data.go.kr/data/15084084/openapi.do) → `.env`의 `KMA_FORECAST_KEY`
-- [ ] [국립해양조사원_조석예보](https://www.data.go.kr/data/15038991/openapi.do) → `.env`의 `KHOA_TIDE_KEY`
+- [ ] [기상청_단기예보 조회서비스](https://www.data.go.kr/data/15084084/openapi.do) → `.env`의 `KMA_FORECAST_KEY` — **이 키는 넣는 순간 바로 실제 날씨로 전환됩니다.**
+- [ ] [국립해양조사원_조석예보](https://www.data.go.kr/data/15038991/openapi.do) → `.env`의 `KHOA_TIDE_KEY` — 키만으론 부족하고, 관측소 코드도 같이 필요합니다 (아래 ④ 참고).
 - [ ] (선택) [갯바위낚시포인트 오픈API](https://www.data.go.kr/data/15148580/fileData.do) → `.env`의 `MOF_ROCKPOINT_KEY`
+
+> ⚠️ **`.env`는 로컬 실행(`npm start`)에서만 읽힙니다.** Cloud Run에 배포한 뒤에는 `.env` 파일이 컨테이너에 없으므로
+> (`.gitignore`/`.dockerignore`에서 제외됨), 키는 반드시 ③의 `--set-env-vars` 또는 Secret Manager로 다시 넣어줘야 합니다.
+> 로컬에서 키를 넣고 잘 되는 걸 확인한 다음, 같은 값을 Cloud Run에도 넣어주는 2단계라고 생각하시면 됩니다.
 
 ### ② GitHub
 - [ ] 새 저장소 생성 (예: `fishing-map-kr`), **Private/Public 원하는 대로**
@@ -101,11 +105,14 @@ npm start
 - [ ] (선택, 추천) GitHub 저장소를 Cloud Build 트리거에 연결하면 `main`에 푸시할 때마다 자동 배포됩니다:
   Cloud Console → Cloud Build → 트리거 → "리포지토리 연결" → GitHub 저장소 선택 → 빌드 구성: Dockerfile
 
-### ④ 물때(KHOA) API 실제 연동 완성하기
-`server.js`의 `/api/tide` 부분은 정확한 요청 파라미터명을 제가 100% 확신할 수 없어 **구조만** 만들어뒀습니다
-(data.go.kr이 이 환경에서 직접 조회가 막혀 있어 실제 Swagger 문서를 제가 열어볼 수 없었습니다).
-①에서 키를 받으면 data.go.kr 해당 페이지의 **"상세설명" 탭과 활용가이드 문서**에 정확한 파라미터명이 나옵니다.
-그 내용을 캡처해서 저에게 보여주시면 `/api/tide` 부분을 정확히 완성해드릴 수 있습니다.
+### ④ 물때(KHOA) API — 키 + 관측소 코드 둘 다 필요
+`KHOA_TIDE_KEY`만 `.env`에 넣는다고 바로 실제 값이 나오진 않습니다. KHOA API는 위경도가 아니라
+**관측소 코드(예: `DT_0001`)** 단위로 조회하는 구조라서, 어느 관측소를 쓸지 같이 알려줘야 합니다.
+
+- 지도에서 낚시포인트 상세 패널을 열면 "물때" 섹션 아래에 "관측소 코드" 입력창이 있습니다.
+- 관측소 목록(전국 60개, 코드+이름+위경도)은 [국립해양조사원_조위관측소 운영 현황](https://www.data.go.kr/data/15146602/fileData.do)에서 내려받을 수 있습니다. 여기서 보고 있는 낚시포인트와 가장 가까운 관측소의 코드를 찾아 입력창에 넣고 "조회"를 누르면 됩니다.
+- 키/코드를 넣고 조회했을 때 화면에 KHOA가 돌려준 원본 응답(JSON)이 그대로 보이도록 해뒀습니다. 그 내용을 캡처해서 저에게 보여주시면, `server.js`의 `/api/tide` 응답 파싱 부분(고조/저조 시각 추출)을 정확하게 완성해드릴 수 있습니다 — 지금은 엔드포인트 URL 패턴(`/oceangrid/grid/api/.../search.do`)까지는 확인했지만, 정확한 엔드포인트명과 응답 필드명은 실제 승인된 키로 호출해봐야 확정할 수 있어서입니다.
+- 매번 코드를 입력하기 번거로우면, 나중에 관측소 60개 목록을 `data/`에 넣어주시면 낚시포인트 좌표 기준으로 가장 가까운 관측소를 자동으로 매칭하도록(지금 시/도 매칭에 쓰는 방식과 동일) 코드를 추가해드릴 수 있습니다.
 
 ---
 

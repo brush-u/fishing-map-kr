@@ -328,18 +328,31 @@ Promise.all([fetch('/api/spots').then((r) => r.json()), fetch('/api/boundaries/p
 // ---------------------------------------------------------------------------
 const panel = document.getElementById('panel');
 document.getElementById('panel-close').addEventListener('click', () => panel.classList.add('hidden'));
+document.getElementById('panel-to-region-view').addEventListener('click', showRegionView);
+
+let currentSpot = null; // { lat, lng } — 물때 관측소 코드를 다시 조회할 때 사용
+let lastObsCode = ''; // 같은 세션에서 편의상 마지막으로 입력한 관측소 코드를 기억
 
 function openPanel(props, lat, lng) {
   panel.classList.remove('hidden');
+  currentSpot = { lat, lng };
   document.getElementById('panel-title').textContent = props.name;
   document.getElementById('panel-meta').textContent =
     `${props.region || ''} · ${props.waterType === 'freshwater' ? '민물' : '바다'}` +
     (props.species?.length ? ` · 주요어종: ${props.species.join(', ')}` : '');
 
+  document.getElementById('tide-obscode').value = lastObsCode;
+
   loadWeather(lat, lng);
-  loadTide(lat, lng);
+  loadTide(lat, lng, lastObsCode);
   loadNearby(lat, lng);
 }
+
+document.getElementById('tide-obscode-apply').addEventListener('click', () => {
+  if (!currentSpot) return;
+  lastObsCode = document.getElementById('tide-obscode').value.trim();
+  loadTide(currentSpot.lat, currentSpot.lng, lastObsCode);
+});
 
 function loadWeather(lat, lng) {
   const el = document.getElementById('panel-weather');
@@ -361,17 +374,21 @@ function loadWeather(lat, lng) {
     .catch(() => { el.textContent = '날씨 정보를 가져오지 못했습니다.'; });
 }
 
-function loadTide(lat, lng) {
+function loadTide(lat, lng, obsCode) {
   const el = document.getElementById('panel-tide');
   el.textContent = '불러오는 중...';
-  fetch(`/api/tide?lat=${lat}&lng=${lng}`)
+  const qs = new URLSearchParams({ lat, lng });
+  if (obsCode) qs.set('obsCode', obsCode);
+  fetch(`/api/tide?${qs.toString()}`)
     .then((r) => r.json())
     .then((t) => {
       const lines = [];
-      if (t.mocked) lines.push('⚠️ 예시 데이터 (KHOA 연동 전)');
+      if (t.mocked) lines.push('⚠️ 예시 데이터 (KHOA 키/관측소 코드 미설정)');
+      if (t.error) lines.push(`⚠️ ${t.error}`);
       if (t.highTide) lines.push(`고조: ${t.highTide.join(', ')}`);
       if (t.lowTide) lines.push(`저조: ${t.lowTide.join(', ')}`);
-      if (!t.highTide && !t.lowTide) lines.push('이 지점의 물때 정보는 아직 연결되지 않았습니다.');
+      if (t.raw) lines.push(`<pre class="tide-raw">${JSON.stringify(t.raw, null, 2).slice(0, 500)}</pre>`);
+      if (!t.highTide && !t.lowTide && !t.raw && !t.error) lines.push('이 지점의 물때 정보는 아직 연결되지 않았습니다.');
       el.innerHTML = lines.map((l) => `<div>${l}</div>`).join('');
     })
     .catch(() => { el.textContent = '물때 정보를 가져오지 못했습니다.'; });

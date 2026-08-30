@@ -31,6 +31,7 @@
 
   <div id="panel" class="hidden">
     <button id="panel-close">&times;</button>
+    <button id="panel-to-region-view">🗺 전체 권역 보기</button>
     <h2 id="panel-title">-</h2>
     <p id="panel-meta"></p>
 
@@ -42,6 +43,12 @@
     <section>
       <h3>물때</h3>
       <div id="panel-tide">불러오는 중...</div>
+      <div id="tide-obscode-row">
+        <input type="text" id="tide-obscode" placeholder="관측소 코드 (예: DT_0001)" />
+        <button id="tide-obscode-apply">조회</button>
+      </div>
+      <p class="tide-hint">KHOA 키를 넣었다면 가까운 관측소 코드를 입력해야 실제 값이 나옵니다.
+        <a href="https://www.data.go.kr/data/15146602/fileData.do" target="_blank" rel="noopener">관측소 목록 보기</a></p>
     </section>
 
     <section>

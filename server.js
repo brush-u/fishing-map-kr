@@ -182,43 +182,59 @@ app.get('/api/weather', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// 3) 물때: 국립해양조사원(KHOA) 조석 API — 연결 대기 (TODO)
+// 3) 물때: 국립해양조사원(KHOA) 조석 API
 // ---------------------------------------------------------------------------
-// data.go.kr에서 활용신청 승인을 받으면 제공되는 "오픈API 활용가이드" 문서에
-// 정확한 요청 파라미터/응답 필드명이 있습니다. 이 스캐폴드는 구조만 잡아두고,
-// 실제 필드명은 승인 후 확인하여 아래 TODO 부분만 채우면 됩니다.
+// KHOA 오픈API는 공통적으로 아래 URL 패턴을 씁니다 (다른 KHOA API 실제 호출 예시로 확인됨):
+//   http://www.khoa.go.kr/oceangrid/grid/api/<엔드포인트명>/search.do
+//     ?ServiceKey=...&ObsCode=DT_0001&Date=20260830&ResultType=json
+// ObsCode는 "DT_0001" 같은 문자열 코드입니다 (숫자 아님). 조위 "예보"용 엔드포인트명이
+// tideObsPreTab인지는 확실하지 않으니, 키 발급 후 data.go.kr의 활용가이드 문서에서
+// 정확한 엔드포인트명과 응답 필드명을 확인해 아래 TODO를 맞춰주세요.
+//
+// 관측소 코드(ObsCode)는 프런트엔드 물때 패널의 입력창에서 직접 넣게 되어 있습니다.
+// 전국 60개 관측소 코드/좌표 목록은 data.go.kr의 "국립해양조사원_조위관측소 운영 현황"에서
+// 내려받을 수 있습니다: https://www.data.go.kr/data/15146602/fileData.do
 app.get('/api/tide', async (req, res) => {
   const key = process.env.KHOA_TIDE_KEY;
-  const obsCode = req.query.obsCode; // 관측소 코드 (KHOA 관측소 목록에서 확인)
-  const date = req.query.date; // YYYYMMDD
+  const obsCode = req.query.obsCode; // 예: DT_0001
+  const date = req.query.date || new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
 
   if (!key || !obsCode) {
     return res.json({
       mocked: true,
       message:
-        'KHOA_TIDE_KEY 또는 obsCode가 없어 예시 값을 반환합니다. 실제 연동은 README의 "물때 API 연결하기" 절 참고.',
+        'KHOA_TIDE_KEY 또는 관측소 코드(obsCode)가 없어 예시 값을 반환합니다. 물때 패널의 "관측소 코드" 입력창에 값을 넣어보세요.',
       obsCode: obsCode || null,
-      date: date || null,
+      date,
       highTide: ['04:12', '16:35'],
       lowTide: ['10:24', '22:50'],
     });
   }
 
-  // TODO: 실제 KHOA 조석예보 오픈API 엔드포인트/파라미터명으로 교체
-  // 예시(확인 필요): https://www.khoa.go.kr/api/oceangrid/tideObsPreTab/search.do?ServiceKey=...&ObsCode=...&Date=...
+  // TODO: 엔드포인트명/응답 필드명을 활용가이드 문서로 확인 후 확정
   try {
-    const url = new URL('https://www.khoa.go.kr/api/oceangrid/tideObsPreTab/search.do');
+    const url = new URL('http://www.khoa.go.kr/oceangrid/grid/api/tideObsPreTab/search.do');
     url.searchParams.set('ServiceKey', key);
     url.searchParams.set('ObsCode', obsCode);
-    url.searchParams.set('Date', date || '');
+    url.searchParams.set('Date', date);
     url.searchParams.set('ResultType', 'json');
 
     const r = await fetch(url.toString());
-    const data = await r.json();
-    res.json({ mocked: false, raw: data });
+    const text = await r.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // 키/파라미터가 맞지 않으면 KHOA가 JSON이 아닌 에러 XML/HTML을 줄 수 있습니다.
+      return res.status(502).json({
+        error: 'KHOA 응답이 JSON이 아닙니다. ServiceKey/ObsCode/엔드포인트명을 다시 확인해주세요.',
+        rawResponsePreview: text.slice(0, 300),
+      });
+    }
+    res.json({ mocked: false, obsCode, date, raw: data });
   } catch (err) {
     console.error(err);
-    res.status(502).json({ error: 'KHOA 조석 API 호출에 실패했습니다. 파라미터명을 가이드 문서로 확인해주세요.', detail: String(err) });
+    res.status(502).json({ error: 'KHOA 조석 API 호출에 실패했습니다.', detail: String(err) });
   }
 });
 
