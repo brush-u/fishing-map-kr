@@ -36,10 +36,47 @@ html, body {
   margin: 0;
 }
 
+#region-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+#region-nav.hidden { display: none; }
+
+#btn-back {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#btn-back:hover { background: #f1f2f4; }
+
+#region-title { color: var(--muted); font-weight: 600; }
+
 #filters {
   display: flex;
   gap: 14px;
   font-size: 14px;
+}
+
+#hint {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.92);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  z-index: 999;
+  pointer-events: none;
 }
 
 #filters label {
@@ -111,3 +148,26 @@ html, body {
 .shop-item:last-child { border-bottom: none; }
 
 .leaflet-popup-content { font-size: 13px; }
+
+/* 권역 버블 마커 */
+.region-bubble {
+  background: transparent;
+  border: none;
+}
+
+.region-bubble .bubble {
+  background: rgba(29, 111, 184, 0.88);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  cursor: pointer;
+  border: 2px solid #fff;
+  line-height: 1.1;
+}
+
+.region-bubble .bubble span { font-size: 13px; font-weight: 700; }
+.region-bubble .bubble small { font-size: 11px; opacity: 0.9; }

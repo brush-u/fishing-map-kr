@@ -5,14 +5,50 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 }).addTo(map);
 
+const KOREA_VIEW = { center: [36.2, 127.8], zoom: 7 };
 const markerColor = { sea: '#1d6fb8', freshwater: '#2e8b4f' };
-const markersByType = { sea: [], freshwater: [] };
-let nearbyLayer = L.layerGroup().addTo(map);
+
+// ---------------------------------------------------------------------------
+// 지역(권역) 키 판별
+// 상위 17개 시/도 기준으로 spot.properties.region 문자열의 첫 단어를 매칭합니다.
+// 실제 행정구역 경계(폴리곤)가 아니라, 같은 권역 지점들을 묶어 중심점에 버블을 띄우는 방식입니다.
+// ---------------------------------------------------------------------------
+const METRO = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종'];
+const PROVINCE = ['경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
+
+function regionKeyOf(regionStr) {
+  if (!regionStr) return '기타';
+  const first = regionStr.trim().split(/\s+/)[0];
+  if (METRO.includes(first) || PROVINCE.includes(first)) return first;
+  const two = first.slice(0, 2);
+  if (METRO.includes(two) || PROVINCE.includes(two)) return two;
+  return first;
+}
+
+let allFeatures = [];
+let regionGroupsCache = new Map(); // key -> { count, features, lat, lng }
+let currentView = { mode: 'region' }; // { mode: 'region' } | { mode: 'detail', key }
+
+const regionBubbleLayer = L.layerGroup();
+const detailMarkerLayer = L.layerGroup();
+const nearbyLayer = L.layerGroup().addTo(map);
+let detailMarkersByType = { sea: [], freshwater: [] };
+
+function getActiveTypes() {
+  return {
+    sea: document.getElementById('f-sea').checked,
+    freshwater: document.getElementById('f-freshwater').checked,
+  };
+}
+
+function waterTypeOf(feature) {
+  return feature.properties.waterType === 'freshwater' ? 'freshwater' : 'sea';
+}
 
 function makeSpotMarker(feature) {
   const [lng, lat] = feature.geometry.coordinates;
   const p = feature.properties;
-  const color = markerColor[p.waterType] || '#999';
+  const color = markerColor[waterTypeOf(feature)] || '#999';
   const marker = L.circleMarker([lat, lng], {
     radius: 7,
     color,
@@ -25,29 +61,119 @@ function makeSpotMarker(feature) {
   return marker;
 }
 
-fetch('/api/spots')
-  .then((r) => r.json())
-  .then((geojson) => {
-    geojson.features.forEach((f) => {
-      const type = f.properties.waterType === 'freshwater' ? 'freshwater' : 'sea';
-      const marker = makeSpotMarker(f);
-      markersByType[type].push(marker);
-      marker.addTo(map);
+// ---------------------------------------------------------------------------
+// 1) 권역(그룹) 뷰
+// ---------------------------------------------------------------------------
+function rebuildRegionBubbles() {
+  regionBubbleLayer.clearLayers();
+  const active = getActiveTypes();
+  const groups = new Map();
+
+  allFeatures.forEach((f) => {
+    if (!active[waterTypeOf(f)]) return;
+    const key = f._regionKey;
+    if (!groups.has(key)) groups.set(key, { count: 0, latSum: 0, lngSum: 0, features: [] });
+    const g = groups.get(key);
+    g.count += 1;
+    g.latSum += f.geometry.coordinates[1];
+    g.lngSum += f.geometry.coordinates[0];
+    g.features.push(f);
+  });
+
+  regionGroupsCache = groups;
+
+  groups.forEach((g, key) => {
+    const lat = g.latSum / g.count;
+    const lng = g.lngSum / g.count;
+    const size = Math.max(34, Math.min(64, 28 + g.count * 4));
+    const icon = L.divIcon({
+      className: 'region-bubble',
+      html: `<div class="bubble" style="width:${size}px;height:${size}px;"><span>${key}</span><small>${g.count}곳</small></div>`,
+      iconSize: [size, size],
     });
-  })
-  .catch((err) => console.error('낚시포인트 로드 실패', err));
-
-document.getElementById('f-sea').addEventListener('change', (e) => toggleType('sea', e.target.checked));
-document.getElementById('f-freshwater').addEventListener('change', (e) => toggleType('freshwater', e.target.checked));
-
-function toggleType(type, show) {
-  markersByType[type].forEach((m) => {
-    if (show) m.addTo(map);
-    else map.removeLayer(m);
+    const marker = L.marker([lat, lng], { icon });
+    marker.on('click', () => enterRegion(key));
+    marker.addTo(regionBubbleLayer);
   });
 }
 
-// ---- 우측 정보 패널 ----
+function showRegionView() {
+  currentView = { mode: 'region' };
+  map.removeLayer(detailMarkerLayer);
+  detailMarkerLayer.clearLayers();
+  rebuildRegionBubbles();
+  if (!map.hasLayer(regionBubbleLayer)) regionBubbleLayer.addTo(map);
+  map.setView(KOREA_VIEW.center, KOREA_VIEW.zoom);
+  document.getElementById('region-nav').classList.add('hidden');
+  document.getElementById('region-title').textContent = '';
+}
+
+// ---------------------------------------------------------------------------
+// 2) 권역 상세(드릴다운) 뷰
+// ---------------------------------------------------------------------------
+function enterRegion(key) {
+  const g = regionGroupsCache.get(key);
+  if (!g) return;
+
+  currentView = { mode: 'detail', key };
+  map.removeLayer(regionBubbleLayer);
+  detailMarkerLayer.clearLayers();
+  detailMarkersByType = { sea: [], freshwater: [] };
+
+  g.features.forEach((f) => {
+    const marker = makeSpotMarker(f);
+    detailMarkersByType[waterTypeOf(f)].push(marker);
+    marker.addTo(detailMarkerLayer);
+  });
+  detailMarkerLayer.addTo(map);
+
+  const bounds = L.latLngBounds(g.features.map((f) => [f.geometry.coordinates[1], f.geometry.coordinates[0]]));
+  map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13 });
+
+  document.getElementById('region-nav').classList.remove('hidden');
+  document.getElementById('region-title').textContent = `${key} · 낚시포인트 ${g.count}곳`;
+}
+
+document.getElementById('btn-back').addEventListener('click', showRegionView);
+
+// ---------------------------------------------------------------------------
+// 필터(바다/민물) — 현재 뷰에 맞춰 적용
+// ---------------------------------------------------------------------------
+function applyFilters() {
+  if (currentView.mode === 'region') {
+    rebuildRegionBubbles();
+    return;
+  }
+  const active = getActiveTypes();
+  ['sea', 'freshwater'].forEach((type) => {
+    detailMarkersByType[type].forEach((m) => {
+      if (active[type]) {
+        if (!detailMarkerLayer.hasLayer(m)) m.addTo(detailMarkerLayer);
+      } else if (detailMarkerLayer.hasLayer(m)) {
+        detailMarkerLayer.removeLayer(m);
+      }
+    });
+  });
+}
+
+document.getElementById('f-sea').addEventListener('change', applyFilters);
+document.getElementById('f-freshwater').addEventListener('change', applyFilters);
+
+// ---------------------------------------------------------------------------
+// 데이터 로드
+// ---------------------------------------------------------------------------
+fetch('/api/spots')
+  .then((r) => r.json())
+  .then((geojson) => {
+    allFeatures = geojson.features.map((f) => ({ ...f, _regionKey: regionKeyOf(f.properties.region) }));
+    rebuildRegionBubbles();
+    regionBubbleLayer.addTo(map);
+  })
+  .catch((err) => console.error('낚시포인트 로드 실패', err));
+
+// ---------------------------------------------------------------------------
+// 우측 정보 패널 (날씨 / 물때 / 주변 편의점)
+// ---------------------------------------------------------------------------
 const panel = document.getElementById('panel');
 document.getElementById('panel-close').addEventListener('click', () => panel.classList.add('hidden'));
 
