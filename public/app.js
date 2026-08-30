@@ -2,34 +2,29 @@ const map = L.map('map').setView([36.2, 127.8], 7); // 대한민국 전체가 �
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  attribution:
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' +
+    ' | 시도 경계: KOSTAT 2013 (via southkorea/southkorea-maps)',
 }).addTo(map);
 
 const KOREA_VIEW = { center: [36.2, 127.8], zoom: 7 };
 const markerColor = { sea: '#1d6fb8', freshwater: '#2e8b4f' };
 
-// ---------------------------------------------------------------------------
-// 지역(권역) 키 판별
-// 상위 17개 시/도 기준으로 spot.properties.region 문자열의 첫 단어를 매칭합니다.
-// 실제 행정구역 경계(폴리곤)가 아니라, 같은 권역 지점들을 묶어 중심점에 버블을 띄우는 방식입니다.
-// ---------------------------------------------------------------------------
-const METRO = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종'];
-const PROVINCE = ['경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
-
-function regionKeyOf(regionStr) {
-  if (!regionStr) return '기타';
-  const first = regionStr.trim().split(/\s+/)[0];
-  if (METRO.includes(first) || PROVINCE.includes(first)) return first;
-  const two = first.slice(0, 2);
-  if (METRO.includes(two) || PROVINCE.includes(two)) return two;
-  return first;
-}
+// 2013년 KOSTAT 정식명칭 -> 화면에 쓰는 짧은 이름
+// (강원도/전라북도는 2023~2024년에 강원특별자치도/전북특별자치도로 명칭이 바뀌었지만,
+//  원본 경계 데이터가 2013년 기준이라 표시용 짧은 이름은 그대로 둡니다)
+const FULL_TO_SHORT = {
+  서울특별시: '서울', 부산광역시: '부산', 대구광역시: '대구', 인천광역시: '인천',
+  광주광역시: '광주', 대전광역시: '대전', 울산광역시: '울산', 세종특별자치시: '세종',
+  경기도: '경기', 강원도: '강원', 충청북도: '충북', 충청남도: '충남',
+  전라북도: '전북', 전라남도: '전남', 경상북도: '경북', 경상남도: '경남', 제주특별자치도: '제주',
+};
 
 let allFeatures = [];
-let regionGroupsCache = new Map(); // key -> { count, features, lat, lng }
-let currentView = { mode: 'region' }; // { mode: 'region' } | { mode: 'detail', key }
+let provinceFeatures = []; // 시/도 경계 폴리곤 원본 feature 목록
+let provinceLayer = null; // L.geoJSON 레이어 (권역 뷰)
+let currentView = { mode: 'region' }; // { mode: 'region' } | { mode: 'detail', name }
 
-const regionBubbleLayer = L.layerGroup();
 const detailMarkerLayer = L.layerGroup();
 const nearbyLayer = L.layerGroup().addTo(map);
 let detailMarkersByType = { sea: [], freshwater: [] };
@@ -62,47 +57,134 @@ function makeSpotMarker(feature) {
 }
 
 // ---------------------------------------------------------------------------
-// 1) 권역(그룹) 뷰
+// 각 낚시포인트가 속한 시/도 판별 (실제 경계 폴리곤 기준, 레이캐스팅 point-in-polygon)
+// 해안가 지점은 단순화된 경계선 밖으로 살짝 벗어날 수 있어, 포함 판정이 안 되면
+// 가장 가까운 시/도의 바운딩박스 중심을 기준으로 보정합니다.
+// (외부 지도/GIS 라이브러리 없이 직접 구현 — 의존성을 최소화하기 위함)
 // ---------------------------------------------------------------------------
-function rebuildRegionBubbles() {
-  regionBubbleLayer.clearLayers();
-  const active = getActiveTypes();
-  const groups = new Map();
+function pointInRing(point, ring) {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    const intersects = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
 
+function pointInPolygonCoords(point, rings) {
+  if (!pointInRing(point, rings[0])) return false; // 외곽선 밖이면 제외
+  for (let k = 1; k < rings.length; k++) {
+    if (pointInRing(point, rings[k])) return false; // 구멍(hole) 안이면 제외
+  }
+  return true;
+}
+
+function pointInGeometry(point, geometry) {
+  if (geometry.type === 'Polygon') return pointInPolygonCoords(point, geometry.coordinates);
+  if (geometry.type === 'MultiPolygon') return geometry.coordinates.some((poly) => pointInPolygonCoords(point, poly));
+  return false;
+}
+
+function bboxCenterOf(geometry) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const visit = (ring) => ring.forEach(([x, y]) => {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  });
+  const polys = geometry.type === 'MultiPolygon' ? geometry.coordinates : [geometry.coordinates];
+  polys.forEach((poly) => poly.forEach(visit));
+  return [(minX + maxX) / 2, (minY + maxY) / 2];
+}
+
+function haversineKm([lng1, lat1], [lng2, lat2]) {
+  const R = 6371;
+  const toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad;
+  const dLng = (lng2 - lng1) * toRad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function assignProvinces(features, provinces) {
+  const centers = provinces.map((pf) => ({ name: pf.properties.name, center: bboxCenterOf(pf.geometry) }));
+  features.forEach((f) => {
+    const point = f.geometry.coordinates;
+    let matched = provinces.find((pf) => pointInGeometry(point, pf.geometry))?.properties.name || null;
+
+    if (!matched) {
+      let best = null;
+      let bestDist = Infinity;
+      centers.forEach((c) => {
+        const d = haversineKm(point, c.center);
+        if (d < bestDist) {
+          bestDist = d;
+          best = c.name;
+        }
+      });
+      matched = best;
+    }
+    f._provinceName = matched;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 1) 권역(시/도 경계) 뷰
+// ---------------------------------------------------------------------------
+function countsByProvince() {
+  const active = getActiveTypes();
+  const counts = new Map();
   allFeatures.forEach((f) => {
     if (!active[waterTypeOf(f)]) return;
-    const key = f._regionKey;
-    if (!groups.has(key)) groups.set(key, { count: 0, latSum: 0, lngSum: 0, features: [] });
-    const g = groups.get(key);
-    g.count += 1;
-    g.latSum += f.geometry.coordinates[1];
-    g.lngSum += f.geometry.coordinates[0];
-    g.features.push(f);
+    counts.set(f._provinceName, (counts.get(f._provinceName) || 0) + 1);
   });
+  return counts;
+}
 
-  regionGroupsCache = groups;
+function provinceStyle(count) {
+  const has = count > 0;
+  return {
+    color: '#1d6fb8',
+    weight: 1.3,
+    fillColor: '#1d6fb8',
+    fillOpacity: has ? Math.min(0.12 + count * 0.035, 0.55) : 0.04,
+    opacity: has ? 0.8 : 0.35,
+  };
+}
 
-  groups.forEach((g, key) => {
-    const lat = g.latSum / g.count;
-    const lng = g.lngSum / g.count;
-    const size = Math.max(34, Math.min(64, 28 + g.count * 4));
-    const icon = L.divIcon({
-      className: 'region-bubble',
-      html: `<div class="bubble" style="width:${size}px;height:${size}px;"><span>${key}</span><small>${g.count}곳</small></div>`,
-      iconSize: [size, size],
-    });
-    const marker = L.marker([lat, lng], { icon });
-    marker.on('click', () => enterRegion(key));
-    marker.addTo(regionBubbleLayer);
-  });
+function rebuildProvinceLayer() {
+  const counts = countsByProvince();
+
+  if (provinceLayer) map.removeLayer(provinceLayer);
+
+  provinceLayer = L.geoJSON(
+    { type: 'FeatureCollection', features: provinceFeatures },
+    {
+      style: (feature) => provinceStyle(counts.get(feature.properties.name) || 0),
+      onEachFeature: (feature, layer) => {
+        const name = feature.properties.name;
+        const short = FULL_TO_SHORT[name] || name;
+        const count = counts.get(name) || 0;
+        layer.bindTooltip(`${short} · ${count}곳`, { sticky: true });
+        layer.on('click', () => enterProvince(name));
+        layer.on('mouseover', () => layer.setStyle({ weight: 2.5, fillOpacity: Math.min((counts.get(name) || 0) * 0.035 + 0.25, 0.7) }));
+        layer.on('mouseout', () => layer.setStyle(provinceStyle(count)));
+      },
+    }
+  );
+
+  if (currentView.mode === 'region') provinceLayer.addTo(map);
 }
 
 function showRegionView() {
   currentView = { mode: 'region' };
   map.removeLayer(detailMarkerLayer);
   detailMarkerLayer.clearLayers();
-  rebuildRegionBubbles();
-  if (!map.hasLayer(regionBubbleLayer)) regionBubbleLayer.addTo(map);
+  rebuildProvinceLayer();
   map.setView(KOREA_VIEW.center, KOREA_VIEW.zoom);
   document.getElementById('region-nav').classList.add('hidden');
   document.getElementById('region-title').textContent = '';
@@ -111,27 +193,30 @@ function showRegionView() {
 // ---------------------------------------------------------------------------
 // 2) 권역 상세(드릴다운) 뷰
 // ---------------------------------------------------------------------------
-function enterRegion(key) {
-  const g = regionGroupsCache.get(key);
-  if (!g) return;
+function enterProvince(name) {
+  const features = allFeatures.filter((f) => f._provinceName === name);
+  const provinceFeature = provinceFeatures.find((pf) => pf.properties.name === name);
+  if (!provinceFeature) return;
 
-  currentView = { mode: 'detail', key };
-  map.removeLayer(regionBubbleLayer);
+  currentView = { mode: 'detail', name };
+  if (provinceLayer) map.removeLayer(provinceLayer);
   detailMarkerLayer.clearLayers();
   detailMarkersByType = { sea: [], freshwater: [] };
 
-  g.features.forEach((f) => {
+  const active = getActiveTypes();
+  features.forEach((f) => {
     const marker = makeSpotMarker(f);
     detailMarkersByType[waterTypeOf(f)].push(marker);
-    marker.addTo(detailMarkerLayer);
+    if (active[waterTypeOf(f)]) marker.addTo(detailMarkerLayer);
   });
   detailMarkerLayer.addTo(map);
 
-  const bounds = L.latLngBounds(g.features.map((f) => [f.geometry.coordinates[1], f.geometry.coordinates[0]]));
-  map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13 });
+  const bounds = L.geoJSON(provinceFeature).getBounds();
+  map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
 
+  const short = FULL_TO_SHORT[name] || name;
   document.getElementById('region-nav').classList.remove('hidden');
-  document.getElementById('region-title').textContent = `${key} · 낚시포인트 ${g.count}곳`;
+  document.getElementById('region-title').textContent = `${short} · 낚시포인트 ${features.length}곳`;
 }
 
 document.getElementById('btn-back').addEventListener('click', showRegionView);
@@ -141,7 +226,7 @@ document.getElementById('btn-back').addEventListener('click', showRegionView);
 // ---------------------------------------------------------------------------
 function applyFilters() {
   if (currentView.mode === 'region') {
-    rebuildRegionBubbles();
+    rebuildProvinceLayer();
     return;
   }
   const active = getActiveTypes();
@@ -160,16 +245,16 @@ document.getElementById('f-sea').addEventListener('change', applyFilters);
 document.getElementById('f-freshwater').addEventListener('change', applyFilters);
 
 // ---------------------------------------------------------------------------
-// 데이터 로드
+// 데이터 로드 (낚시포인트 + 시/도 경계)
 // ---------------------------------------------------------------------------
-fetch('/api/spots')
-  .then((r) => r.json())
-  .then((geojson) => {
-    allFeatures = geojson.features.map((f) => ({ ...f, _regionKey: regionKeyOf(f.properties.region) }));
-    rebuildRegionBubbles();
-    regionBubbleLayer.addTo(map);
+Promise.all([fetch('/api/spots').then((r) => r.json()), fetch('/api/boundaries/provinces').then((r) => r.json())])
+  .then(([spotsGeojson, boundariesGeojson]) => {
+    allFeatures = spotsGeojson.features;
+    provinceFeatures = boundariesGeojson.features;
+    assignProvinces(allFeatures, provinceFeatures);
+    rebuildProvinceLayer();
   })
-  .catch((err) => console.error('낚시포인트 로드 실패', err));
+  .catch((err) => console.error('지도 데이터 로드 실패', err));
 
 // ---------------------------------------------------------------------------
 // 우측 정보 패널 (날씨 / 물때 / 주변 편의점)

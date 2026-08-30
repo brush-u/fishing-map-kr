@@ -1,17 +1,23 @@
 # 대한민국 낚시지도 (fishing-map-kr)
 
 바다낚시 + 민물낚시 포인트를 지도에 표시하고, 포인트별로 날씨·물때·주변 편의점/상점 정보를 보여주는 웹앱입니다.
-지도 엔진은 **Leaflet + OpenStreetMap** (키 불필요, 완전 무료)을 사용합니다.
+지도 엔진은 **Leaflet + OpenStreetMap** (키 불필요, 완전 무료)을 사용합니다. Leaflet 자체도 CDN 대신
+`public/vendor/leaflet/`에 파일로 내장해뒀습니다 (CDN 장애/차단에 영향받지 않도록).
 
 > 현재 상태: **동작하는 프로토타입**입니다. 낚시포인트는 전국 단위를 보여주기 위한 **샘플(시연용) 데이터 38곳**이 들어있고,
 > 날씨는 기상청 API 연동 코드가 완성되어 있습니다(키만 넣으면 실제 값 표시). 물때(KHOA)는 구조만 잡아두고
 > 실제 연동은 아래 "해야 할 일"의 4번을 따라 완성해야 합니다.
 
-**권역별 그룹핑**: 처음 지도를 열면 개별 포인트 대신 시/도 단위 "권역 버블"(예: 전남 8곳)이 표시됩니다.
-버블을 클릭하면 해당 권역의 낚시포인트가 모두 표시되고, 화면 상단의 "← 전체 권역 보기"로 다시 돌아갈 수 있습니다.
-지금은 실제 행정구역 경계(폴리곤)가 아니라 `properties.region` 문자열로 지점을 묶어 중심점에 버블을 띄우는 방식입니다
-(`public/app.js`의 `regionKeyOf`). 실제 시/도 경계선까지 그리고 싶다면 행정안전부/VWorld의 시/도 경계 GeoJSON을
-받아 `regionKeyOf` 대신 point-in-polygon 매칭으로 바꾸면 됩니다 — 필요하시면 말씀해주세요.
+**권역별 그룹핑**: 처음 지도를 열면 개별 포인트 대신 전국 17개 시/도 경계선(폴리곤)이 표시되고, 각 권역에
+속한 낚시포인트 수가 진하기와 툴팁으로 나타납니다. 폴리곤을 클릭하면 해당 권역의 낚시포인트가 모두 표시되고,
+화면 상단의 "← 전체 권역 보기"로 다시 돌아갈 수 있습니다.
+
+경계 데이터는 통계청(KOSTAT) 2013년 행정구역 경계를 [southkorea/southkorea-maps](https://github.com/southkorea/southkorea-maps)
+저장소에서 받아(`free to share or remix` 라이선스), `mapshaper`로 3%까지 단순화해 `data/boundaries/skorea-provinces.geo.json`
+(약 470KB)으로 만들어 넣었습니다. 각 낚시포인트가 어느 시/도에 속하는지는 좌표를 폴리곤에 대해 point-in-polygon
+판정(`public/app.js`의 `pointInGeometry`)으로 직접 계산합니다 — 해안 지점이 단순화된 경계선 밖으로 살짝 벗어나면
+가장 가까운 시/도로 자동 보정합니다. 2013년 자료라 강원도/전라북도는 현재의 강원특별자치도/전북특별자치도와
+이름이 다른데, 표시용 이름만 다른 거라 그룹핑 자체에는 영향이 없습니다.
 
 ---
 
@@ -115,7 +121,9 @@ npm start
 
 - 낚시포인트(샘플): 직접 정리 (공공데이터로 교체 예정)
 - 낚시포인트(공식, 교체 시): 행정안전부 전국낚시터정보표준데이터, 해양수산부 갯바위낚시포인트 (data.go.kr, 공공누리)
+- 시/도 경계: 통계청(KOSTAT) 2013, via [southkorea/southkorea-maps](https://github.com/southkorea/southkorea-maps) ("free to share or remix")
 - 지도 타일: © OpenStreetMap contributors
+- 지도 라이브러리: Leaflet (BSD-2-Clause)
 - 편의점/상점: © OpenStreetMap contributors (Overpass API)
 - 날씨: 기상청 단기예보 조회서비스
 - 물때: 국립해양조사원 (연동 예정)

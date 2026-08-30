@@ -30,6 +30,17 @@ app.get('/api/spots', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// 1-1) 시/도 경계(폴리곤) — KOSTAT 2013 행정구역 경계
+// 출처: https://github.com/southkorea/southkorea-maps (KOSTAT, "free to share or remix")
+// mapshaper로 3%까지 단순화(28MB -> ~470KB)하여 웹에서 바로 쓸 수 있게 가공했습니다.
+// ---------------------------------------------------------------------------
+app.get('/api/boundaries/provinces', (req, res) => {
+  const file = path.join(__dirname, 'data', 'boundaries', 'skorea-provinces.geo.json');
+  res.setHeader('Content-Type', 'application/geo+json; charset=utf-8');
+  fs.createReadStream(file).pipe(res);
+});
+
+// ---------------------------------------------------------------------------
 // 2) 날씨: 기상청_단기예보 조회서비스 (data.go.kr)
 // ---------------------------------------------------------------------------
 // 위경도 -> 기상청 격자(nx, ny) 변환 (기상청 공개 알고리즘, Lambert Conformal Conic)
