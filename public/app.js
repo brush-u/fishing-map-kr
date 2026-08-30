@@ -188,17 +188,29 @@ function showRegionView() {
   map.setView(KOREA_VIEW.center, KOREA_VIEW.zoom);
   document.getElementById('region-nav').classList.add('hidden');
   document.getElementById('region-title').textContent = '';
+
+  currentRegionFeatures = [];
+  currentFeatureMarker = new Map();
+  activeListItemEl = null;
+  document.getElementById('spot-list').classList.add('hidden');
+  panel.classList.add('hidden');
 }
 
 // ---------------------------------------------------------------------------
 // 2) 권역 상세(드릴다운) 뷰
 // ---------------------------------------------------------------------------
+let currentRegionFeatures = [];
+let currentFeatureMarker = new Map(); // feature -> Leaflet marker (현재 드릴다운된 권역 한정)
+let activeListItemEl = null;
+
 function enterProvince(name) {
   const features = allFeatures.filter((f) => f._provinceName === name);
   const provinceFeature = provinceFeatures.find((pf) => pf.properties.name === name);
   if (!provinceFeature) return;
 
   currentView = { mode: 'detail', name };
+  currentRegionFeatures = features;
+  currentFeatureMarker = new Map();
   if (provinceLayer) map.removeLayer(provinceLayer);
   detailMarkerLayer.clearLayers();
   detailMarkersByType = { sea: [], freshwater: [] };
@@ -206,6 +218,7 @@ function enterProvince(name) {
   const active = getActiveTypes();
   features.forEach((f) => {
     const marker = makeSpotMarker(f);
+    currentFeatureMarker.set(f, marker);
     detailMarkersByType[waterTypeOf(f)].push(marker);
     if (active[waterTypeOf(f)]) marker.addTo(detailMarkerLayer);
   });
@@ -217,9 +230,61 @@ function enterProvince(name) {
   const short = FULL_TO_SHORT[name] || name;
   document.getElementById('region-nav').classList.remove('hidden');
   document.getElementById('region-title').textContent = `${short} · 낚시포인트 ${features.length}곳`;
+
+  renderSpotList(short);
 }
 
 document.getElementById('btn-back').addEventListener('click', showRegionView);
+
+// ---------------------------------------------------------------------------
+// 좌측 "권역 내 낚시터 목록" 패널
+// ---------------------------------------------------------------------------
+function renderSpotList(regionShortName) {
+  const listEl = document.getElementById('spot-list');
+  const headerEl = document.getElementById('spot-list-header');
+  const itemsEl = document.getElementById('spot-list-items');
+  const active = getActiveTypes();
+
+  const visibleFeatures = currentRegionFeatures.filter((f) => active[waterTypeOf(f)]);
+
+  headerEl.textContent = `${regionShortName} 낚시터 (${visibleFeatures.length}곳)`;
+  itemsEl.innerHTML = '';
+
+  if (visibleFeatures.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = '표시할 낚시터가 없습니다. (필터를 확인해주세요)';
+    li.style.cursor = 'default';
+    itemsEl.appendChild(li);
+  } else {
+    visibleFeatures.forEach((f) => {
+      const p = f.properties;
+      const li = document.createElement('li');
+      const dotColor = markerColor[waterTypeOf(f)];
+      li.innerHTML =
+        `<div class="spot-name"><span class="water-dot" style="background:${dotColor}"></span>${p.name}</div>` +
+        `<div class="spot-meta">${p.region || ''}${p.species?.length ? ' · ' + p.species.slice(0, 3).join(', ') : ''}</div>`;
+      li.addEventListener('click', () => selectSpotFromList(f, li));
+      itemsEl.appendChild(li);
+    });
+  }
+
+  listEl.classList.remove('hidden');
+}
+
+function selectSpotFromList(feature, li) {
+  const marker = currentFeatureMarker.get(feature);
+  if (!marker) return;
+  const [lng, lat] = feature.geometry.coordinates;
+
+  map.setView([lat, lng], Math.max(map.getZoom(), 13), { animate: true });
+  marker.openTooltip();
+
+  if (activeListItemEl) activeListItemEl.classList.remove('active');
+  li.classList.add('active');
+  activeListItemEl = li;
+
+  openPanel(feature.properties, lat, lng);
+}
 
 // ---------------------------------------------------------------------------
 // 필터(바다/민물) — 현재 뷰에 맞춰 적용
@@ -239,6 +304,8 @@ function applyFilters() {
       }
     });
   });
+  const short = FULL_TO_SHORT[currentView.name] || currentView.name;
+  renderSpotList(short);
 }
 
 document.getElementById('f-sea').addEventListener('change', applyFilters);

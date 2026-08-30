@@ -114,6 +114,56 @@ html, body {
   z-index: 1001;
 }
 
+/* 선택된 권역의 낚시포인트 목록 (좌측 패널) */
+#spot-list {
+  position: absolute;
+  top: 70px;
+  left: 16px;
+  width: 280px;
+  max-height: calc(100% - 90px);
+  overflow-y: auto;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 1001;
+}
+
+#spot-list.hidden { display: none; }
+
+#spot-list-header {
+  padding: 14px 16px 10px;
+  font-weight: 700;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--panel-bg);
+}
+
+#spot-list-items { list-style: none; margin: 0; padding: 6px 0; }
+
+#spot-list-items li {
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f2f4;
+  font-size: 13px;
+}
+
+#spot-list-items li:hover { background: #f5f7fa; }
+#spot-list-items li.active { background: #eaf2fb; }
+
+#spot-list-items .spot-name { font-weight: 600; }
+#spot-list-items .spot-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+.water-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
 #panel.hidden { display: none; }
 
 #panel-close {
