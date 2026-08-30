@@ -201,6 +201,15 @@ function provinceStyle(count) {
   };
 }
 
+// 권역 상세(드릴다운) 뷰에서 쓰는 시/도 경계 스타일.
+// - 지금 보고 있는 권역(isActive)은 완전히 투명하게 지워서 낚시포인트 마커를 가리지 않게 하고,
+// - 나머지 권역은 아주 옅게만 표시해서, 클릭하면 바로 그 권역으로 넘어갈 수 있다는 걸 은은하게 알려줍니다.
+function detailProvinceStyle(isActive) {
+  return isActive
+    ? { color: '#1d6fb8', weight: 0, fillColor: '#1d6fb8', fillOpacity: 0, opacity: 0 }
+    : { color: '#8a94a3', weight: 1, fillColor: '#8a94a3', fillOpacity: 0.03, opacity: 0.3 };
+}
+
 function rebuildProvinceLayer() {
   const counts = countsByProvince();
 
@@ -216,8 +225,22 @@ function rebuildProvinceLayer() {
         const count = counts.get(name) || 0;
         layer.bindTooltip(`${short} · ${count}곳`, { sticky: true });
         layer.on('click', () => enterProvince(name));
-        layer.on('mouseover', () => layer.setStyle({ weight: 2.5, fillOpacity: Math.min((counts.get(name) || 0) * 0.035 + 0.25, 0.7) }));
-        layer.on('mouseout', () => layer.setStyle(provinceStyle(count)));
+        layer.on('mouseover', () => {
+          // 권역 상세 뷰에서는 지금 보고 있는 권역(투명 처리된 폴리곤)은 굳이 강조하지 않고,
+          // 다른 권역만 살짝 강조해서 "클릭하면 이동" 힌트를 줍니다.
+          if (currentView.mode === 'detail') {
+            if (name !== currentView.name) layer.setStyle({ weight: 2, fillOpacity: 0.16, opacity: 0.55 });
+            return;
+          }
+          layer.setStyle({ weight: 2.5, fillOpacity: Math.min((counts.get(name) || 0) * 0.035 + 0.25, 0.7) });
+        });
+        layer.on('mouseout', () => {
+          if (currentView.mode === 'detail') {
+            layer.setStyle(detailProvinceStyle(name === currentView.name));
+            return;
+          }
+          layer.setStyle(provinceStyle(count));
+        });
       },
     }
   );
@@ -259,7 +282,17 @@ function enterProvince(name) {
   currentView = { mode: 'detail', name };
   currentRegionFeatures = features;
   currentFeatureMarker = new Map();
-  if (provinceLayer) map.removeLayer(provinceLayer);
+
+  // 권역 경계 레이어는 지도에서 완전히 없애지 않고 계속 띄워둡니다.
+  // 대신 지금 보고 있는 권역은 투명하게, 나머지 권역은 옅게 스타일만 바꿔서
+  // 상세(드릴다운) 화면에서도 다른 권역을 바로 클릭해서 이동할 수 있게 합니다.
+  if (provinceLayer) {
+    if (!map.hasLayer(provinceLayer)) provinceLayer.addTo(map);
+    provinceLayer.eachLayer((layer) => {
+      layer.setStyle(detailProvinceStyle(layer.feature.properties.name === name));
+    });
+    provinceLayer.bringToBack();
+  }
   detailMarkerLayer.clearLayers();
   detailMarkersByType = { sea: [], freshwater: [] };
 
