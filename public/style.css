@@ -170,6 +170,9 @@ body {
   width: 320px;
   max-height: calc(100% - 28px);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   background: var(--panel-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -186,6 +189,11 @@ body {
   width: 280px;
   max-height: calc(100% - 28px);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* 지도(Leaflet) 위에 겹쳐 있는 패널이라, 손가락으로 세로 스크롤할 때 지도 쪽으로
+     제스처가 새거나 브라우저가 스크롤을 가로채지 못하는 문제를 막기 위해 명시적으로 지정합니다. */
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   background: var(--panel-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
