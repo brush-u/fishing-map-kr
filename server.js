@@ -334,16 +334,17 @@ function buildOverpassQuery(radius, lat, lon) {
   `;
 }
 
-async function queryOverpass(lat, lon, radius) {
-  const endpoint = process.env.OVERPASS_ENDPOINT || 'https://overpass-api.de/api/interpreter';
-  // Overpass 공개 서버는 종종 느리거나 혼잡합니다 — 무한정 기다리지 않도록 타임아웃을 짧게 둡니다.
-  const r = await fetchWithTimeout(
-    endpoint,
-    { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: buildOverpassQuery(radius, lat, lon) },
-    10000
-  );
-  if (!r.ok) throw new Error(`Overpass HTTP ${r.status}`);
-  const data = await r.json();
+// Overpass 공개 서버(overpass-api.de)는 무료지만 혼잡할 때 느려지거나 응답이 없을 때가 있습니다.
+// OVERPASS_ENDPOINT를 직접 지정하지 않았다면, 기본 서버가 실패/타임아웃될 경우 다른 무료 미러 서버로
+// 자동으로 한 번 더 시도해서 "상점 정보를 가져오지 못했습니다" 실패를 줄입니다.
+const OVERPASS_ENDPOINTS = process.env.OVERPASS_ENDPOINT
+  ? [process.env.OVERPASS_ENDPOINT]
+  : [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+    ];
+
+function parseOverpassElements(data, lat, lon) {
   return (data.elements || [])
     .map((el) => {
       const point = el.type === 'node' ? { lat: el.lat, lon: el.lon } : el.center;
@@ -358,6 +359,32 @@ async function queryOverpass(lat, lon, radius) {
       };
     })
     .filter(Boolean);
+}
+
+async function queryOverpass(lat, lon, radius) {
+  const query = buildOverpassQuery(radius, lat, lon);
+  let lastErr = null;
+
+  for (let i = 0; i < OVERPASS_ENDPOINTS.length; i++) {
+    const endpoint = OVERPASS_ENDPOINTS[i];
+    try {
+      // 서버 하나당 너무 오래 기다리지 않도록 타임아웃을 짧게 두고, 실패하면 다음 서버로 넘어갑니다.
+      const r = await fetchWithTimeout(
+        endpoint,
+        { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: query },
+        9000
+      );
+      if (!r.ok) throw new Error(`Overpass HTTP ${r.status} (${endpoint})`);
+      const data = await r.json();
+      return parseOverpassElements(data, lat, lon);
+    } catch (err) {
+      lastErr = err;
+      const hasNext = i < OVERPASS_ENDPOINTS.length - 1;
+      console.warn(`Overpass 서버 실패 (${endpoint}): ${err.message || err}${hasNext ? ' — 다음 미러로 재시도합니다.' : ''}`);
+    }
+  }
+
+  throw lastErr || new Error('모든 Overpass 서버 호출에 실패했습니다.');
 }
 
 const KAKAO_CATEGORY_LABELS = { CS2: 'convenience', OL7: 'fuel' };
