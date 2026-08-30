@@ -6,7 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "import:spots": "node data/scripts/import_standard_csv.js"
+    "import:spots": "node data/scripts/import_standard_csv.js",
+    "push": "bash scripts/push-to-github.sh"
   },
   "engines": {
     "node": ">=20"
@@ -15,7 +16,8 @@
     "csv-parse": "^5.5.6",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "proj4": "^2.11.0"
   },
   "license": "MIT",
   "devDependencies": {

@@ -1,4 +1,6 @@
-const map = L.map('map').setView([36.2, 127.8], 7); // 대한민국 전체가 보이는 초기 시야
+// 줌 컨트롤은 기본(top-left) 위치가 좌측 "권역 목록" 패널과 겹치므로 bottom-left로 옮깁니다.
+const map = L.map('map', { zoomControl: false }).setView([36.2, 127.8], 7); // 대한민국 전체가 보이는 초기 시야
+L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
@@ -40,18 +42,61 @@ function waterTypeOf(feature) {
   return feature.properties.waterType === 'freshwater' ? 'freshwater' : 'sea';
 }
 
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+// 구글맵 스타일의 물방울(teardrop) 핀 아이콘을 SVG로 직접 그려서 divIcon으로 사용합니다.
+// (이미지 파일 없이, 바다(파랑)/민물(초록) 색상만 바꿔서 재사용)
+const pinIconCache = {};
+function pinIcon(type) {
+  if (pinIconCache[type]) return pinIconCache[type];
+  const color = markerColor[type] || '#999';
+  const emoji = type === 'freshwater' ? '🐟' : '🎣';
+  const html = `
+    <div class="pin-wrap">
+      <svg width="28" height="40" viewBox="0 0 28 40" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 0C6.3 0 0 6.3 0 14c0 10 14 26 14 26s14-16 14-26C28 6.3 21.7 0 14 0z"
+              fill="${color}" stroke="#ffffff" stroke-width="1.5"/>
+        <circle cx="14" cy="14" r="9" fill="rgba(255,255,255,0.92)"/>
+      </svg>
+      <span class="pin-emoji">${emoji}</span>
+    </div>`;
+  const icon = L.divIcon({
+    className: 'spot-pin-icon',
+    html,
+    iconSize: [28, 40],
+    iconAnchor: [14, 38],
+    popupAnchor: [0, -34],
+    tooltipAnchor: [0, -30],
+  });
+  pinIconCache[type] = icon;
+  return icon;
+}
+
+// 마커에 마우스를 올리면 뜨는 "풍선말"에 이름뿐 아니라 권역/어종/수종 등 상세 정보를 보여줍니다.
+// (클릭하면 열리는 우측 상세 패널과는 별개로, 지도를 훑어볼 때 바로 핵심 정보를 알 수 있게 함)
+function tooltipHtml(p) {
+  const type = waterTypeOf({ properties: p });
+  const typeLabel = type === 'freshwater' ? '민물낚시' : '바다낚시';
+  const speciesStr = Array.isArray(p.species) && p.species.length ? p.species.slice(0, 5).join(', ') : '';
+  const lifestyleBadge = p.lifestyleFishing ? '<span class="tt-badge">생활낚시</span>' : '';
+  return `
+    <div class="spot-tooltip">
+      <div class="tt-name">${escapeHtml(p.name)}${lifestyleBadge}</div>
+      <div class="tt-meta">${typeLabel}${p.region ? ' · ' + escapeHtml(p.region) : ''}</div>
+      ${speciesStr ? `<div class="tt-species">🐟 ${escapeHtml(speciesStr)}</div>` : ''}
+    </div>`;
+}
+
 function makeSpotMarker(feature) {
   const [lng, lat] = feature.geometry.coordinates;
   const p = feature.properties;
-  const color = markerColor[waterTypeOf(feature)] || '#999';
-  const marker = L.circleMarker([lat, lng], {
-    radius: 7,
-    color,
-    weight: 2,
-    fillColor: color,
-    fillOpacity: 0.7,
-  });
-  marker.bindTooltip(p.name);
+  const type = waterTypeOf(feature);
+  const marker = L.marker([lat, lng], { icon: pinIcon(type) });
+  marker.bindTooltip(tooltipHtml(p), { direction: 'top', opacity: 0.97, className: 'spot-tooltip-wrapper' });
   marker.on('click', () => openPanel(p, lat, lng));
   return marker;
 }
@@ -188,12 +233,14 @@ function showRegionView() {
   map.setView(KOREA_VIEW.center, KOREA_VIEW.zoom);
   document.getElementById('region-nav').classList.add('hidden');
   document.getElementById('region-title').textContent = '';
+  document.getElementById('region-weather').textContent = '';
 
   currentRegionFeatures = [];
   currentFeatureMarker = new Map();
   activeListItemEl = null;
   document.getElementById('spot-list').classList.add('hidden');
   panel.classList.add('hidden');
+  document.getElementById('hint').classList.remove('hidden');
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +248,7 @@ function showRegionView() {
 // ---------------------------------------------------------------------------
 let currentRegionFeatures = [];
 let currentFeatureMarker = new Map(); // feature -> Leaflet marker (현재 드릴다운된 권역 한정)
+let featureToLiEl = new Map(); // feature -> 좌측 목록의 <li> (현재 드릴다운된 권역 한정, 검색 결과 포커싱에 사용)
 let activeListItemEl = null;
 
 function enterProvince(name) {
@@ -230,43 +278,116 @@ function enterProvince(name) {
   const short = FULL_TO_SHORT[name] || name;
   document.getElementById('region-nav').classList.remove('hidden');
   document.getElementById('region-title').textContent = `${short} · 낚시포인트 ${features.length}곳`;
+  document.getElementById('hint').classList.add('hidden');
 
   renderSpotList(short);
+  loadRegionWeather(provinceFeature);
+}
+
+// 기상청 단기예보는 5km 격자 단위(사실상 지역 단위) 정보라 낚시터 하나하나가 아니라
+// "이 권역은 지금 대략 이런 날씨"로 봐도 무방합니다. 권역의 대표지점(경계 바운딩박스 중심) 기준으로
+// 한 번만 조회해서 상단 권역 타이틀 옆에 배지로 보여줍니다.
+function loadRegionWeather(provinceFeature) {
+  const el = document.getElementById('region-weather');
+  if (!provinceFeature) {
+    el.textContent = '';
+    return;
+  }
+  const [lng, lat] = bboxCenterOf(provinceFeature.geometry);
+  el.textContent = '· 날씨 불러오는 중...';
+  fetch(`/api/weather?lat=${lat}&lng=${lng}`)
+    .then((r) => r.json())
+    .then((w) => {
+      if (w.error) {
+        el.textContent = '';
+        return;
+      }
+      const parts = [];
+      if (w.mocked) parts.push('⚠️ 예시데이터');
+      parts.push(w.sky ?? '-');
+      if (w.precipitationType && w.precipitationType !== '없음') parts.push(`강수:${w.precipitationType}`);
+      if (w.temperature != null) parts.push(`${w.temperature}℃`);
+      if (w.windSpeed != null) parts.push(`풍속${w.windSpeed}m/s`);
+      if (w.waveHeight) parts.push(`파고${w.waveHeight}m`);
+      el.textContent = `· ${parts.join(' · ')}`;
+      el.title = '권역 대표지점 기준 날씨입니다. 기상청 격자(5km) 단위 예보라 실제 낚시포인트와 약간 다를 수 있어요.';
+    })
+    .catch(() => { el.textContent = ''; });
 }
 
 document.getElementById('btn-back').addEventListener('click', showRegionView);
 
+// 지도를 줌아웃해서 권역 상세 뷰보다 더 넓은 범위가 보이면 자동으로 전체 권역 뷰로 돌아갑니다.
+// (17개 시/도 전체를 기준으로 드릴다운 시 도달하는 최소 줌 레벨이 8이어서, 7 이하를 "축소됨"으로 판단)
+const AUTO_COLLAPSE_ZOOM = KOREA_VIEW.zoom;
+map.on('zoomend', () => {
+  if (currentView.mode === 'detail' && map.getZoom() <= AUTO_COLLAPSE_ZOOM) {
+    showRegionView();
+  }
+});
+
 // ---------------------------------------------------------------------------
 // 좌측 "권역 내 낚시터 목록" 패널
 // ---------------------------------------------------------------------------
+const WATER_GROUP_META = {
+  sea: { label: '🎣 바다낚시' },
+  freshwater: { label: '🐟 민물낚시' },
+};
+
+// 좌측 목록을 바다/민물 두 그룹으로 나눠 보여줍니다. 상단 체크박스(#f-sea/#f-freshwater)와
+// 목록 헤더의 칩 버튼(.chip)이 같은 필터 상태를 공유하며 서로 동기화됩니다.
 function renderSpotList(regionShortName) {
   const listEl = document.getElementById('spot-list');
-  const headerEl = document.getElementById('spot-list-header');
-  const itemsEl = document.getElementById('spot-list-items');
+  const titleEl = document.getElementById('spot-list-title');
+  const bodyEl = document.getElementById('spot-list-body');
   const active = getActiveTypes();
 
   const visibleFeatures = currentRegionFeatures.filter((f) => active[waterTypeOf(f)]);
 
-  headerEl.textContent = `${regionShortName} 낚시터 (${visibleFeatures.length}곳)`;
-  itemsEl.innerHTML = '';
+  titleEl.textContent = `${regionShortName} 낚시터 (${visibleFeatures.length}곳)`;
+  bodyEl.innerHTML = '';
+  featureToLiEl = new Map();
 
   if (visibleFeatures.length === 0) {
-    const li = document.createElement('li');
-    li.textContent = '표시할 낚시터가 없습니다. (필터를 확인해주세요)';
-    li.style.cursor = 'default';
-    itemsEl.appendChild(li);
-  } else {
-    visibleFeatures.forEach((f) => {
+    const p = document.createElement('p');
+    p.className = 'spot-list-empty';
+    p.textContent = '표시할 낚시터가 없습니다. (필터를 확인해주세요)';
+    bodyEl.appendChild(p);
+    listEl.classList.remove('hidden');
+    return;
+  }
+
+  const groups = { sea: [], freshwater: [] };
+  visibleFeatures.forEach((f) => groups[waterTypeOf(f)].push(f));
+
+  ['sea', 'freshwater'].forEach((type) => {
+    const items = groups[type];
+    if (items.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = 'spot-group';
+
+    const h4 = document.createElement('h4');
+    h4.className = 'spot-group-title';
+    h4.textContent = `${WATER_GROUP_META[type].label} (${items.length})`;
+    section.appendChild(h4);
+
+    const ul = document.createElement('ul');
+    ul.className = 'spot-group-items';
+    items.forEach((f) => {
       const p = f.properties;
       const li = document.createElement('li');
       const dotColor = markerColor[waterTypeOf(f)];
       li.innerHTML =
-        `<div class="spot-name"><span class="water-dot" style="background:${dotColor}"></span>${p.name}</div>` +
-        `<div class="spot-meta">${p.region || ''}${p.species?.length ? ' · ' + p.species.slice(0, 3).join(', ') : ''}</div>`;
+        `<div class="spot-name"><span class="water-dot" style="background:${dotColor}"></span>${escapeHtml(p.name)}</div>` +
+        `<div class="spot-meta">${escapeHtml(p.region || '')}${p.species?.length ? ' · ' + escapeHtml(p.species.slice(0, 3).join(', ')) : ''}</div>`;
       li.addEventListener('click', () => selectSpotFromList(f, li));
-      itemsEl.appendChild(li);
+      ul.appendChild(li);
+      featureToLiEl.set(f, li);
     });
-  }
+    section.appendChild(ul);
+    bodyEl.appendChild(section);
+  });
 
   listEl.classList.remove('hidden');
 }
@@ -282,14 +403,26 @@ function selectSpotFromList(feature, li) {
   if (activeListItemEl) activeListItemEl.classList.remove('active');
   li.classList.add('active');
   activeListItemEl = li;
+  li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
   openPanel(feature.properties, lat, lng);
 }
 
 // ---------------------------------------------------------------------------
 // 필터(바다/민물) — 현재 뷰에 맞춰 적용
+// 상단 체크박스(#f-sea/#f-freshwater)가 필터의 단일 기준(source of truth)이고,
+// 좌측 목록 헤더의 칩 버튼(.chip)은 이 상태를 보여주기만 하는 거울입니다.
 // ---------------------------------------------------------------------------
+function syncFilterChips() {
+  const active = getActiveTypes();
+  const seaChip = document.querySelector('.chip-sea');
+  const freshChip = document.querySelector('.chip-freshwater');
+  if (seaChip) seaChip.classList.toggle('active', active.sea);
+  if (freshChip) freshChip.classList.toggle('active', active.freshwater);
+}
+
 function applyFilters() {
+  syncFilterChips();
   if (currentView.mode === 'region') {
     rebuildProvinceLayer();
     return;
@@ -310,6 +443,15 @@ function applyFilters() {
 
 document.getElementById('f-sea').addEventListener('change', applyFilters);
 document.getElementById('f-freshwater').addEventListener('change', applyFilters);
+
+document.querySelectorAll('#spot-list-chips .chip').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    const type = chip.dataset.type;
+    const checkbox = document.getElementById(type === 'sea' ? 'f-sea' : 'f-freshwater');
+    checkbox.checked = !checkbox.checked;
+    applyFilters();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // 데이터 로드 (낚시포인트 + 시/도 경계)
@@ -384,10 +526,22 @@ function loadTide(lat, lng, obsCode) {
     .then((t) => {
       const lines = [];
       if (t.mocked) lines.push('⚠️ 예시 데이터 (KHOA 키/관측소 코드 미설정)');
-      if (t.error) lines.push(`⚠️ ${t.error}`);
+      if (t.error) lines.push(`⚠️ ${escapeHtml(t.error)}`);
+      if (t.apiError) {
+        const { code, msg, hint } = t.apiError;
+        lines.push(
+          `<div class="tide-hint">KHOA 응답 코드: ${escapeHtml(code || '-')}${msg ? ` / ${escapeHtml(msg)}` : ''}` +
+            (hint ? `<br>→ ${escapeHtml(hint)}` : '') +
+            '</div>'
+        );
+      }
       if (t.highTide) lines.push(`고조: ${t.highTide.join(', ')}`);
       if (t.lowTide) lines.push(`저조: ${t.lowTide.join(', ')}`);
-      if (t.raw) lines.push(`<pre class="tide-raw">${JSON.stringify(t.raw, null, 2).slice(0, 500)}</pre>`);
+      if (t.raw) lines.push(`<pre class="tide-raw">${escapeHtml(JSON.stringify(t.raw, null, 2).slice(0, 800))}</pre>`);
+      if (t.rawResponsePreview) {
+        lines.push('<div class="tide-hint">KHOA 원본 응답 (디버그용):</div>');
+        lines.push(`<pre class="tide-raw">${escapeHtml(t.rawResponsePreview)}</pre>`);
+      }
       if (!t.highTide && !t.lowTide && !t.raw && !t.error) lines.push('이 지점의 물때 정보는 아직 연결되지 않았습니다.');
       el.innerHTML = lines.map((l) => `<div>${l}</div>`).join('');
     })
@@ -398,17 +552,29 @@ function loadNearby(lat, lng) {
   const el = document.getElementById('panel-nearby');
   el.textContent = '불러오는 중...';
   nearbyLayer.clearLayers();
-  fetch(`/api/nearby?lat=${lat}&lng=${lng}&radius=1000`)
+  fetch(`/api/nearby?lat=${lat}&lng=${lng}`)
     .then((r) => r.json())
     .then((geojson) => {
-      if (!geojson.features?.length) {
-        el.textContent = '반경 1km 내 편의점/상점 정보가 없습니다.';
+      if (geojson.error) {
+        el.textContent = `⚠️ ${geojson.error}`;
         return;
       }
-      el.innerHTML = geojson.features
-        .slice(0, 15)
-        .map((f) => `<div class="shop-item">🏪 ${f.properties.name} (${f.properties.shop})</div>`)
-        .join('');
+      const radiusKm = geojson.radiusUsed ? (geojson.radiusUsed / 1000).toFixed(geojson.radiusUsed % 1000 ? 1 : 0) : null;
+      const providerNote = geojson.provider === 'overpass'
+        ? '<div class="tide-hint">OpenStreetMap 기반이라 농어촌·섬 지역은 등록이 안 되어 있을 수 있어요. (더 정확한 검색을 원하면 카카오 로컬 API 키를 추가할 수 있습니다 — README 참고)</div>'
+        : '';
+      if (!geojson.features?.length) {
+        el.innerHTML = `<div>반경 ${radiusKm}km 내에 편의점/상점 정보가 없습니다.</div>${providerNote}`;
+        return;
+      }
+      el.innerHTML =
+        geojson.features
+          .slice(0, 15)
+          .map((f) => {
+            const distText = f.properties.distanceM != null ? ` · ${f.properties.distanceM}m` : '';
+            return `<div class="shop-item">🏪 ${escapeHtml(f.properties.name)} (${escapeHtml(f.properties.shop)})${distText}</div>`;
+          })
+          .join('') + providerNote;
       geojson.features.forEach((f) => {
         const [flng, flat] = f.geometry.coordinates;
         L.marker([flat, flng], {
@@ -420,3 +586,119 @@ function loadNearby(lat, lng) {
     })
     .catch(() => { el.textContent = '주변 상점 정보를 가져오지 못했습니다.'; });
 }
+
+// ---------------------------------------------------------------------------
+// 낚시터 이름 검색 — 전국 어디서든 이름으로 검색해서 해당 권역으로 이동한 뒤
+// 좌측 목록과 지도 마커를 모두 그 낚시터로 포커싱합니다.
+// ---------------------------------------------------------------------------
+const searchInput = document.getElementById('search-input');
+const searchResultsEl = document.getElementById('search-results');
+let searchMatches = [];
+let searchActiveIndex = -1;
+
+function searchFeaturesByName(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return allFeatures.filter((f) => (f.properties.name || '').toLowerCase().includes(q)).slice(0, 8);
+}
+
+function highlightSearchIndex(index) {
+  searchActiveIndex = index;
+  searchResultsEl.querySelectorAll('.search-result-item').forEach((el, i) => {
+    el.classList.toggle('active', i === index);
+    if (i === index) el.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function renderSearchResults(matches) {
+  searchResultsEl.innerHTML = '';
+  searchActiveIndex = -1;
+
+  if (matches.length === 0) {
+    const div = document.createElement('div');
+    div.className = 'search-empty';
+    div.textContent = '검색 결과가 없습니다.';
+    searchResultsEl.appendChild(div);
+    searchResultsEl.classList.remove('hidden');
+    return;
+  }
+
+  matches.forEach((f) => {
+    const p = f.properties;
+    const type = waterTypeOf(f);
+    const icon = type === 'freshwater' ? '🐟' : '🎣';
+    const div = document.createElement('div');
+    div.className = 'search-result-item';
+    div.innerHTML =
+      `<div class="search-result-name">${icon} ${escapeHtml(p.name)}</div>` +
+      `<div class="search-result-meta">${escapeHtml(p.region || '')}${p.species?.length ? ' · ' + escapeHtml(p.species.slice(0, 3).join(', ')) : ''}</div>`;
+    div.addEventListener('click', () => goToSearchResult(f));
+    searchResultsEl.appendChild(div);
+  });
+  searchResultsEl.classList.remove('hidden');
+}
+
+// 검색으로 선택한 낚시터가 속한 권역으로 이동(필요시)하고, 목록 항목과 지도 마커를 모두 포커싱합니다.
+function goToSearchResult(feature) {
+  const type = waterTypeOf(feature);
+  const checkbox = document.getElementById(type === 'freshwater' ? 'f-freshwater' : 'f-sea');
+  if (!checkbox.checked) checkbox.checked = true; // 필터 때문에 안 보이는 상태였다면 켜줌
+
+  const province = feature._provinceName;
+  if (currentView.mode === 'detail' && currentView.name === province) {
+    applyFilters(); // 이미 같은 권역이면 필터만 재적용해서 목록/마커를 최신 상태로
+  } else {
+    enterProvince(province);
+  }
+
+  const li = featureToLiEl.get(feature);
+  if (li) {
+    selectSpotFromList(feature, li);
+  } else {
+    const marker = currentFeatureMarker.get(feature);
+    if (marker) {
+      const [lng, lat] = feature.geometry.coordinates;
+      map.setView([lat, lng], Math.max(map.getZoom(), 13), { animate: true });
+      marker.openTooltip();
+      openPanel(feature.properties, lat, lng);
+    }
+  }
+
+  searchResultsEl.classList.add('hidden');
+  searchInput.value = feature.properties.name;
+}
+
+searchInput.addEventListener('input', () => {
+  searchMatches = searchFeaturesByName(searchInput.value);
+  if (searchInput.value.trim()) {
+    renderSearchResults(searchMatches);
+  } else {
+    searchResultsEl.classList.add('hidden');
+  }
+});
+
+searchInput.addEventListener('focus', () => {
+  if (searchInput.value.trim() && searchMatches.length) searchResultsEl.classList.remove('hidden');
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (searchMatches.length) highlightSearchIndex(Math.min(searchActiveIndex + 1, searchMatches.length - 1));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (searchMatches.length) highlightSearchIndex(Math.max(searchActiveIndex - 1, 0));
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const target = searchMatches[searchActiveIndex >= 0 ? searchActiveIndex : 0];
+    if (target) goToSearchResult(target);
+  } else if (e.key === 'Escape') {
+    searchResultsEl.classList.add('hidden');
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('search-box').contains(e.target)) {
+    searchResultsEl.classList.add('hidden');
+  }
+});

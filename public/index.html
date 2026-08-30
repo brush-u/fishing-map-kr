@@ -13,6 +13,11 @@
     <div id="region-nav" class="hidden">
       <button id="btn-back">← 전체 권역 보기</button>
       <span id="region-title"></span>
+      <span id="region-weather"></span>
+    </div>
+    <div id="search-box">
+      <input type="text" id="search-input" placeholder="🔍 낚시터 이름으로 검색..." autocomplete="off" />
+      <div id="search-results" class="hidden"></div>
     </div>
     <div id="filters">
       <label><input type="checkbox" id="f-sea" checked /> 바다</label>
@@ -21,45 +26,53 @@
     </div>
   </header>
 
-  <div id="map"></div>
-  <p id="hint">권역을 클릭하면 해당 권역의 낚시포인트가 모두 표시됩니다.</p>
+  <div id="map-area">
+    <div id="map"></div>
+    <p id="hint">권역을 클릭하면 해당 권역의 낚시포인트가 모두 표시됩니다.</p>
 
-  <div id="spot-list" class="hidden">
-    <div id="spot-list-header"></div>
-    <ul id="spot-list-items"></ul>
-  </div>
-
-  <div id="panel" class="hidden">
-    <button id="panel-close">&times;</button>
-    <button id="panel-to-region-view">🗺 전체 권역 보기</button>
-    <h2 id="panel-title">-</h2>
-    <p id="panel-meta"></p>
-
-    <section>
-      <h3>날씨</h3>
-      <div id="panel-weather">불러오는 중...</div>
-    </section>
-
-    <section>
-      <h3>물때</h3>
-      <div id="panel-tide">불러오는 중...</div>
-      <div id="tide-obscode-row">
-        <input type="text" id="tide-obscode" placeholder="관측소 코드 (예: DT_0001)" />
-        <button id="tide-obscode-apply">조회</button>
+    <div id="spot-list" class="hidden">
+      <div id="spot-list-header">
+        <div id="spot-list-title"></div>
+        <div id="spot-list-chips">
+          <button type="button" class="chip chip-sea active" data-type="sea">🎣 바다</button>
+          <button type="button" class="chip chip-freshwater active" data-type="freshwater">🐟 민물</button>
+        </div>
       </div>
-      <p class="tide-hint">KHOA 키를 넣었다면 가까운 관측소 코드를 입력해야 실제 값이 나옵니다.
-        <a href="https://www.data.go.kr/data/15146602/fileData.do" target="_blank" rel="noopener">관측소 목록 보기</a></p>
-    </section>
+      <div id="spot-list-body"></div>
+    </div>
 
-    <section>
-      <h3>주변 편의점 / 상점</h3>
-      <div id="panel-nearby">불러오는 중...</div>
-    </section>
+    <div id="panel" class="hidden">
+      <button id="panel-close">&times;</button>
+      <button id="panel-to-region-view">🗺 전체 권역 보기</button>
+      <h2 id="panel-title">-</h2>
+      <p id="panel-meta"></p>
 
-    <section class="coming-soon">
-      <h3>생활낚시 정보 <span class="badge">준비중</span></h3>
-      <p>도심 인근 접근성, 주차, 화장실, 초심자 난이도 등 생활낚시 관련 정보가 추후 이 자리에 표시됩니다.</p>
-    </section>
+      <section>
+        <h3>날씨</h3>
+        <div id="panel-weather">불러오는 중...</div>
+      </section>
+
+      <section>
+        <h3>물때</h3>
+        <div id="panel-tide">불러오는 중...</div>
+        <div id="tide-obscode-row">
+          <input type="text" id="tide-obscode" placeholder="관측소 코드 (예: DT_0001)" />
+          <button id="tide-obscode-apply">조회</button>
+        </div>
+        <p class="tide-hint">KHOA 키를 넣었다면 가까운 관측소 코드를 입력해야 실제 값이 나옵니다.
+          <a href="https://www.data.go.kr/data/15146602/fileData.do" target="_blank" rel="noopener">관측소 목록 보기</a></p>
+      </section>
+
+      <section>
+        <h3>주변 편의점 / 상점</h3>
+        <div id="panel-nearby">불러오는 중...</div>
+      </section>
+
+      <section class="coming-soon">
+        <h3>생활낚시 정보 <span class="badge">준비중</span></h3>
+        <p>도심 인근 접근성, 주차, 화장실, 초심자 난이도 등 생활낚시 관련 정보가 추후 이 자리에 표시됩니다.</p>
+      </section>
+    </div>
   </div>
 
   <script src="vendor/leaflet/leaflet.js"></script>

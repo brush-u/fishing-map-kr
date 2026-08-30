@@ -18,6 +18,13 @@ html, body {
   background: var(--bg);
 }
 
+body {
+  display: flex;
+  flex-direction: column;
+  /* iOS Safari 주소창 높이 변화에 안전하게 대응 */
+  height: 100dvh;
+}
+
 #topbar {
   display: flex;
   align-items: center;
@@ -29,6 +36,14 @@ html, body {
   z-index: 1000;
   flex-wrap: wrap;
   gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* 지도 + 오버레이 패널들의 기준이 되는 컨테이너 (topbar 높이와 무관하게 항상 정확히 맞음) */
+#map-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 #topbar h1 {
@@ -45,6 +60,54 @@ html, body {
 
 #region-nav.hidden { display: none; }
 
+/* ---------------------------------------------------------------------------
+   낚시터 이름 검색 (전국 어디서든 검색 -> 해당 권역으로 이동 + 목록/지도 포커싱)
+--------------------------------------------------------------------------- */
+#search-box {
+  position: relative;
+  flex: 0 1 240px;
+  min-width: 160px;
+}
+
+#search-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+#search-input:focus { outline: 2px solid #cfe0f5; border-color: var(--sea); }
+
+#search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 1100;
+}
+
+#search-results.hidden { display: none; }
+
+.search-result-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f2f4;
+}
+
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover, .search-result-item.active { background: #f5f7fa; }
+.search-result-name { font-weight: 600; }
+.search-result-meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
+.search-empty { padding: 10px 12px; color: var(--muted); font-size: 12px; }
+
 #btn-back {
   border: 1px solid var(--border);
   background: #fff;
@@ -57,6 +120,7 @@ html, body {
 #btn-back:hover { background: #f1f2f4; }
 
 #region-title { color: var(--muted); font-weight: 600; }
+#region-weather { color: var(--muted); font-size: 12px; cursor: help; }
 
 #filters {
   display: flex;
@@ -93,7 +157,7 @@ html, body {
 
 #map {
   position: absolute;
-  top: 56px;
+  top: 0;
   bottom: 0;
   left: 0;
   right: 0;
@@ -101,26 +165,26 @@ html, body {
 
 #panel {
   position: absolute;
-  top: 70px;
+  top: 14px;
   right: 16px;
   width: 320px;
-  max-height: calc(100% - 90px);
+  max-height: calc(100% - 28px);
   overflow-y: auto;
   background: var(--panel-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   padding: 16px;
-  z-index: 1001;
+  z-index: 1002;
 }
 
 /* 선택된 권역의 낚시포인트 목록 (좌측 패널) */
 #spot-list {
   position: absolute;
-  top: 70px;
+  top: 14px;
   left: 16px;
   width: 280px;
-  max-height: calc(100% - 90px);
+  max-height: calc(100% - 28px);
   overflow-y: auto;
   background: var(--panel-bg);
   border: 1px solid var(--border);
@@ -132,29 +196,59 @@ html, body {
 #spot-list.hidden { display: none; }
 
 #spot-list-header {
-  padding: 14px 16px 10px;
-  font-weight: 700;
-  font-size: 14px;
+  padding: 12px 16px 10px;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   background: var(--panel-bg);
+  z-index: 1;
 }
 
-#spot-list-items { list-style: none; margin: 0; padding: 6px 0; }
+#spot-list-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
 
-#spot-list-items li {
+#spot-list-chips { display: flex; gap: 6px; }
+
+.chip {
+  border: 1px solid var(--border);
+  background: #f5f7fa;
+  color: var(--muted);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.chip.active.chip-sea { background: #eaf2fb; border-color: var(--sea); color: var(--sea); font-weight: 600; }
+.chip.active.chip-freshwater { background: #eaf7ee; border-color: var(--fresh); color: var(--fresh); font-weight: 600; }
+.chip:not(.active) { opacity: 0.6; }
+
+#spot-list-body { padding: 4px 0 6px; }
+
+.spot-group-title {
+  margin: 10px 16px 2px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.spot-group-items { list-style: none; margin: 0; padding: 2px 0 4px; }
+
+.spot-group-items li {
   padding: 10px 16px;
   cursor: pointer;
   border-bottom: 1px solid #f1f2f4;
   font-size: 13px;
 }
 
-#spot-list-items li:hover { background: #f5f7fa; }
-#spot-list-items li.active { background: #eaf2fb; }
+.spot-group-items li:hover { background: #f5f7fa; }
+.spot-group-items li.active { background: #eaf2fb; }
 
-#spot-list-items .spot-name { font-weight: 600; }
-#spot-list-items .spot-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.spot-group-items .spot-name { font-weight: 600; }
+.spot-group-items .spot-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+.spot-list-empty { padding: 16px; color: var(--muted); font-size: 13px; margin: 0; }
 
 .water-dot {
   display: inline-block;
@@ -250,6 +344,75 @@ html, body {
 
 .leaflet-popup-content { font-size: 13px; }
 
+/* ---------------------------------------------------------------------------
+   낚시포인트 마커 — 구글맵 스타일의 물방울(teardrop) 핀 아이콘
+--------------------------------------------------------------------------- */
+.spot-pin-icon {
+  background: transparent;
+  border: none;
+}
+
+.pin-wrap {
+  position: relative;
+  width: 28px;
+  height: 40px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}
+
+.pin-emoji {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 28px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* 마커 위에 마우스를 올리면 뜨는 "풍선말" — 이름 외에 권역/수종/어종을 함께 보여줍니다 */
+.spot-tooltip-wrapper {
+  padding: 0;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.spot-tooltip {
+  padding: 8px 10px;
+  min-width: 120px;
+  max-width: 220px;
+}
+
+.spot-tooltip .tt-name {
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spot-tooltip .tt-meta {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.spot-tooltip .tt-species {
+  font-size: 11px;
+  margin-top: 4px;
+  color: var(--text);
+}
+
+.spot-tooltip .tt-badge {
+  display: inline-block;
+  font-size: 10px;
+  background: #eaf7ee;
+  color: var(--fresh);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
 /* 권역 버블 마커 */
 .region-bubble {
   background: transparent;
@@ -272,3 +435,55 @@ html, body {
 
 .region-bubble .bubble span { font-size: 13px; font-weight: 700; }
 .region-bubble .bubble small { font-size: 11px; opacity: 0.9; }
+
+/* ---------------------------------------------------------------------------
+   모바일 대응 (휴대폰 가로폭 기준)
+   - 좌측 "권역 낚시터 목록"과 우측 "상세정보" 패널은 화면이 좁아지면
+     나란히 띄울 공간이 없으므로, 하단에서 올라오는 바텀시트 형태로 전환합니다.
+   - 상세정보(패널)가 목록(spot-list) 위에 겹쳐 뜨도록 z-index로 순서를 잡아뒀습니다.
+--------------------------------------------------------------------------- */
+@media (max-width: 680px) {
+  #topbar h1 { font-size: 15px; }
+
+  #topbar {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  #filters { font-size: 13px; gap: 10px; }
+
+  #search-box { order: 3; flex: 1 1 100%; min-width: 0; }
+
+  /* 터치 탭 영역을 넉넉하게 */
+  #filters label { padding: 4px 0; }
+  #btn-back, #panel-to-region-view, #tide-obscode-apply, #panel-close {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  #spot-list,
+  #panel {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    max-width: none;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
+  }
+
+  #spot-list { max-height: 42vh; }
+  #panel { max-height: 65vh; }
+
+  #spot-list-header { border-radius: 16px 16px 0 0; }
+
+  #hint {
+    max-width: calc(100% - 32px);
+    text-align: center;
+    bottom: 10px;
+  }
+
+  /* Leaflet 줌 컨트롤과 맞닿지 않도록 약간 아래로 */
+  .leaflet-control-zoom { margin-top: 6px !important; }
+}

@@ -110,6 +110,11 @@ function latestBaseDateTime(now = new Date()) {
 const SKY_MAP = { 1: '맑음', 3: '구름많음', 4: '흐림' };
 const PTY_MAP = { 0: '없음', 1: '비', 2: '비/눈', 3: '눈', 4: '소나기' };
 
+// 같은 격자(nx,ny)는 낚시포인트 상세패널과 권역 날씨 배지에서 동시에 여러 번 조회될 수 있어
+// (권역 안 여러 지점이 같은 5km 격자에 속하는 경우가 흔함) 캐싱해서 KMA 호출 횟수를 줄입니다.
+const weatherCache = new Map(); // key: "nx,ny,base_date,base_time" -> { ts, data }
+const WEATHER_CACHE_TTL_MS = 1000 * 60 * 10; // 10분
+
 app.get('/api/weather', async (req, res) => {
   try {
     const lat = parseFloat(req.query.lat);
@@ -132,6 +137,12 @@ app.get('/api/weather', async (req, res) => {
 
     const { nx, ny } = latLonToGrid(lat, lon);
     const { base_date, base_time } = latestBaseDateTime();
+
+    const cacheKey = `${nx},${ny},${base_date},${base_time}`;
+    const cached = weatherCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < WEATHER_CACHE_TTL_MS) {
+      return res.json({ ...cached.data, cached: true });
+    }
 
     const url = new URL('http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst');
     url.searchParams.set('serviceKey', key);
@@ -161,7 +172,7 @@ app.get('/api/weather', async (req, res) => {
 
     const get = (cat) => slotItems.find((i) => i.category === cat)?.fcstValue;
 
-    res.json({
+    const payload = {
       mocked: false,
       nx,
       ny,
@@ -174,7 +185,9 @@ app.get('/api/weather', async (req, res) => {
       humidity: get('REH') ?? null,
       windSpeed: get('WSD') ?? null,
       waveHeight: get('WAV') ?? null,
-    });
+    };
+    weatherCache.set(cacheKey, { ts: Date.now(), data: payload });
+    res.json(payload);
   } catch (err) {
     console.error(err);
     res.status(502).json({ error: '기상청 API 호출에 실패했습니다.', detail: String(err) });
@@ -211,7 +224,36 @@ app.get('/api/tide', async (req, res) => {
     });
   }
 
-  // TODO: 엔드포인트명/응답 필드명을 활용가이드 문서로 확인 후 확정
+  // data.go.kr 계열 공공API가 공통으로 쓰는 에러 코드표 (문서로 명시 확인은 못했지만
+  // 대부분의 공공데이터포털 OpenAPI가 공유하는 표준 스펙이라 참고용으로 매핑해둡니다)
+  const OPENAPI_ERROR_HINTS = {
+    '1': '애플리케이션 오류',
+    '4': 'HTTP 오류',
+    '10': '요청 파라미터가 올바르지 않습니다.',
+    '11': '필수 요청 파라미터가 누락되었습니다.',
+    '12': '해당 오픈API 서비스를 찾을 수 없습니다 (엔드포인트명이 틀렸을 수 있습니다).',
+    '20': '서비스 접근이 거부되었습니다.',
+    '21': '일시적으로 사용할 수 없는 서비스키입니다.',
+    '22': '일일 요청 제한 횟수를 초과했습니다.',
+    '30': '등록되지 않은 서비스키입니다 (활용신청 후 승인 대기 중일 수 있습니다).',
+    '31': '기한이 만료된 서비스키입니다.',
+    '32': '등록되지 않은 IP에서의 요청입니다 (IP 화이트리스트 등록이 필요할 수 있습니다).',
+    '33': '서명되지 않은 요청입니다.',
+  };
+
+  function extractOpenApiError(text) {
+    const msg = /<returnAuthMsg>([^<]*)<\/returnAuthMsg>/.exec(text)?.[1]
+      || /<errMsg>([^<]*)<\/errMsg>/.exec(text)?.[1]
+      || /<resultMsg>([^<]*)<\/resultMsg>/.exec(text)?.[1];
+    const code = /<returnReasonCode>([^<]*)<\/returnReasonCode>/.exec(text)?.[1]
+      || /<resultCode>([^<]*)<\/resultCode>/.exec(text)?.[1];
+    if (!msg && !code) return null;
+    const hint = code && OPENAPI_ERROR_HINTS[code];
+    return { code: code || null, msg: msg || null, hint: hint || null };
+  }
+
+  // 엔드포인트명(tideObsPreTab)은 data.go.kr 활용가이드 상 명확히 재확인되지 않은 값이라,
+  // 실패 시 원인을 바로 알 수 있도록 원본 응답 전체를 프런트로 내려줍니다.
   try {
     const url = new URL('http://www.khoa.go.kr/oceangrid/grid/api/tideObsPreTab/search.do');
     url.searchParams.set('ServiceKey', key);
@@ -225,10 +267,14 @@ app.get('/api/tide', async (req, res) => {
     try {
       data = JSON.parse(text);
     } catch {
-      // 키/파라미터가 맞지 않으면 KHOA가 JSON이 아닌 에러 XML/HTML을 줄 수 있습니다.
+      // 키/파라미터/엔드포인트명이 맞지 않으면 KHOA가 JSON이 아닌 에러 XML/HTML을 줄 수 있습니다.
+      const apiError = extractOpenApiError(text);
       return res.status(502).json({
         error: 'KHOA 응답이 JSON이 아닙니다. ServiceKey/ObsCode/엔드포인트명을 다시 확인해주세요.',
-        rawResponsePreview: text.slice(0, 300),
+        httpStatus: r.status,
+        contentType: r.headers.get('content-type') || null,
+        apiError,
+        rawResponsePreview: text.slice(0, 1500),
       });
     }
     res.json({ mocked: false, obsCode, date, raw: data });
@@ -239,62 +285,148 @@ app.get('/api/tide', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// 4) 주변 편의점/상점: OpenStreetMap Overpass API (무료, 키 불필요)
+// 4) 주변 편의점/상점
+//    - 기본: OpenStreetMap Overpass API (무료, 키 불필요, 대신 농어촌/섬 지역은 등록이 부실할 수 있음)
+//    - KAKAO_REST_API_KEY가 설정되어 있으면 카카오 로컬 API(카테고리 검색)를 대신 사용합니다.
+//      국내 편의점/주유소 커버리지가 OSM보다 훨씬 좋고 응답도 빠릅니다. 카카오 계정만 있으면
+//      무료로 REST API 키를 받을 수 있고(신용카드 불필요), 일 100,000건 무료 쿼터입니다.
+//      발급: https://developers.kakao.com -> 내 애플리케이션 -> 앱 생성 -> "REST API 키" 복사
 // ---------------------------------------------------------------------------
-const overpassCache = new Map(); // key: "lat,lng,radius" -> { ts, data }
-const CACHE_TTL_MS = 1000 * 60 * 30; // 30분 캐시 (Overpass 공정 사용 정책 준수)
+const nearbyCache = new Map(); // key: "provider,lat,lng,radius" -> { ts, data }
+const CACHE_TTL_MS = 1000 * 60 * 30; // 30분 캐시
 
-app.get('/api/nearby', async (req, res) => {
+const DEFAULT_NEARBY_RADIUS = 3000; // 편의점/상점은 처음부터 넉넉한 반경으로 한 번에 조회 (왕복 여러 번 대신 1번)
+const MAX_NEARBY_RADIUS = 5000;
+
+function haversineMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad;
+  const dLon = (lon2 - lon1) * toRad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const lat = parseFloat(req.query.lat);
-    const lon = parseFloat(req.query.lng ?? req.query.lon);
-    const radius = Math.min(parseInt(req.query.radius, 10) || 1000, 3000); // 최대 3km로 제한
-    if (Number.isNaN(lat) || Number.isNaN(lon)) {
-      return res.status(400).json({ error: 'lat, lng 쿼리 파라미터가 필요합니다.' });
-    }
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-    const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)},${radius}`;
-    const cached = overpassCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-      return res.json(cached.data);
-    }
+function buildOverpassQuery(radius, lat, lon) {
+  // node뿐 아니라 건물(way)/부지(relation)로 매핑된 상점도 잡기 위해 nwr + out center 사용
+  return `
+    [out:json][timeout:12];
+    (
+      nwr["shop"="convenience"](around:${radius},${lat},${lon});
+      nwr["shop"="supermarket"](around:${radius},${lat},${lon});
+      nwr["shop"="kiosk"](around:${radius},${lat},${lon});
+      nwr["shop"="bait"](around:${radius},${lat},${lon});
+      nwr["shop"="fishing"](around:${radius},${lat},${lon});
+      nwr["amenity"="fuel"](around:${radius},${lat},${lon});
+      nwr["amenity"="convenience_store"](around:${radius},${lat},${lon});
+    );
+    out center;
+  `;
+}
 
-    const endpoint = process.env.OVERPASS_ENDPOINT || 'https://overpass-api.de/api/interpreter';
-    const query = `
-      [out:json][timeout:25];
-      (
-        node["shop"="convenience"](around:${radius},${lat},${lon});
-        node["shop"="supermarket"](around:${radius},${lat},${lon});
-        node["shop"="bait"](around:${radius},${lat},${lon});
-        node["shop"="fishing"](around:${radius},${lat},${lon});
-        node["amenity"="fuel"](around:${radius},${lat},${lon});
-      );
-      out body;
-    `;
-
-    const r = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: query,
-    });
-    const data = await r.json();
-
-    const features = (data.elements || []).map((el) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [el.lon, el.lat] },
-      properties: {
+async function queryOverpass(lat, lon, radius) {
+  const endpoint = process.env.OVERPASS_ENDPOINT || 'https://overpass-api.de/api/interpreter';
+  // Overpass 공개 서버는 종종 느리거나 혼잡합니다 — 무한정 기다리지 않도록 타임아웃을 짧게 둡니다.
+  const r = await fetchWithTimeout(
+    endpoint,
+    { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: buildOverpassQuery(radius, lat, lon) },
+    10000
+  );
+  if (!r.ok) throw new Error(`Overpass HTTP ${r.status}`);
+  const data = await r.json();
+  return (data.elements || [])
+    .map((el) => {
+      const point = el.type === 'node' ? { lat: el.lat, lon: el.lon } : el.center;
+      if (!point) return null;
+      return {
         name: el.tags?.name || '이름 없음',
         shop: el.tags?.shop || el.tags?.amenity || 'unknown',
         brand: el.tags?.brand || null,
-      },
+        lat: point.lat,
+        lon: point.lon,
+        distanceM: Math.round(haversineMeters(lat, lon, point.lat, point.lon)),
+      };
+    })
+    .filter(Boolean);
+}
+
+const KAKAO_CATEGORY_LABELS = { CS2: 'convenience', OL7: 'fuel' };
+
+async function queryKakaoLocal(lat, lon, radius, apiKey) {
+  const categories = ['CS2', 'OL7']; // 편의점, 주유소/충전소
+  const results = await Promise.all(
+    categories.map(async (code) => {
+      const url = new URL('https://dapi.kakao.com/v2/local/search/category.json');
+      url.searchParams.set('category_group_code', code);
+      url.searchParams.set('x', String(lon));
+      url.searchParams.set('y', String(lat));
+      url.searchParams.set('radius', String(Math.min(radius, 20000)));
+      url.searchParams.set('sort', 'distance');
+      url.searchParams.set('size', '15');
+      const r = await fetchWithTimeout(url.toString(), { headers: { Authorization: `KakaoAK ${apiKey}` } }, 8000);
+      if (!r.ok) throw new Error(`Kakao Local API HTTP ${r.status}`);
+      const data = await r.json();
+      return (data.documents || []).map((d) => ({
+        name: d.place_name,
+        shop: KAKAO_CATEGORY_LABELS[code] || code,
+        brand: null,
+        lat: parseFloat(d.y),
+        lon: parseFloat(d.x),
+        distanceM: d.distance ? parseInt(d.distance, 10) : Math.round(haversineMeters(lat, lon, parseFloat(d.y), parseFloat(d.x))),
+      }));
+    })
+  );
+  return results.flat();
+}
+
+app.get('/api/nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lng ?? req.query.lon);
+  const radius = Math.min(parseInt(req.query.radius, 10) || DEFAULT_NEARBY_RADIUS, MAX_NEARBY_RADIUS);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat, lng 쿼리 파라미터가 필요합니다.' });
+  }
+
+  const kakaoKey = process.env.KAKAO_REST_API_KEY;
+  const provider = kakaoKey ? 'kakao' : 'overpass';
+  const cacheKey = `${provider},${lat.toFixed(4)},${lon.toFixed(4)},${radius}`;
+  const cached = nearbyCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return res.json({ ...cached.data, cached: true });
+  }
+
+  try {
+    const results = kakaoKey ? await queryKakaoLocal(lat, lon, radius, kakaoKey) : await queryOverpass(lat, lon, radius);
+    results.sort((a, b) => a.distanceM - b.distanceM);
+
+    const features = results.map((r) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [r.lon, r.lat] },
+      properties: { name: r.name, shop: r.shop, brand: r.brand, distanceM: r.distanceM },
     }));
 
-    const geojson = { type: 'FeatureCollection', features };
-    overpassCache.set(cacheKey, { ts: Date.now(), data: geojson });
-    res.json(geojson);
+    const payload = { type: 'FeatureCollection', features, radiusUsed: radius, provider };
+    nearbyCache.set(cacheKey, { ts: Date.now(), data: payload });
+    res.json(payload);
   } catch (err) {
     console.error(err);
-    res.status(502).json({ error: 'Overpass API 호출에 실패했습니다.', detail: String(err) });
+    const timedOut = err.name === 'AbortError';
+    res.status(502).json({
+      error: timedOut
+        ? `${provider === 'kakao' ? '카카오 로컬' : 'Overpass'} API 응답이 너무 오래 걸려 중단했습니다. 잠시 후 다시 시도해주세요.`
+        : `${provider === 'kakao' ? '카카오 로컬' : 'Overpass'} API 호출에 실패했습니다.`,
+      detail: String(err),
+    });
   }
 });
 
