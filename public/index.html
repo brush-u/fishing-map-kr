@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>대한민국 낚시지도</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header id="topbar">
+    <h1>🎣 대한민국 낚시지도</h1>
+    <div id="filters">
+      <label><input type="checkbox" id="f-sea" checked /> 바다</label>
+      <label><input type="checkbox" id="f-freshwater" checked /> 민물</label>
+      <label class="disabled"><input type="checkbox" id="f-lifestyle" disabled /> 생활낚시 (준비중)</label>
+    </div>
+  </header>
+
+  <div id="map"></div>
+
+  <div id="panel" class="hidden">
+    <button id="panel-close">&times;</button>
+    <h2 id="panel-title">-</h2>
+    <p id="panel-meta"></p>
+
+    <section>
+      <h3>날씨</h3>
+      <div id="panel-weather">불러오는 중...</div>
+    </section>
+
+    <section>
+      <h3>물때</h3>
+      <div id="panel-tide">불러오는 중...</div>
+    </section>
+
+    <section>
+      <h3>주변 편의점 / 상점</h3>
+      <div id="panel-nearby">불러오는 중...</div>
+    </section>
+
+    <section class="coming-soon">
+      <h3>생활낚시 정보 <span class="badge">준비중</span></h3>
+      <p>도심 인근 접근성, 주차, 화장실, 초심자 난이도 등 생활낚시 관련 정보가 추후 이 자리에 표시됩니다.</p>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "fishing-map-kr",
+  "version": "0.1.0",
+  "description": "대한민국 바다/민물 낚시지도 - 낚시포인트 + 물때 + 날씨 + 주변 편의점/상점",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "import:spots": "node data/scripts/import_standard_csv.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-fetch": "^2.7.0",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5"
+  },
+  "license": "MIT"
+}
