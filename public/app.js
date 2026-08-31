@@ -27,7 +27,22 @@ let provinceFeatures = []; // 시/도 경계 폴리곤 원본 feature 목록
 let provinceLayer = null; // L.geoJSON 레이어 (권역 뷰)
 let currentView = { mode: 'region' }; // { mode: 'region' } | { mode: 'detail', name }
 
-const detailMarkerLayer = L.layerGroup();
+// 낚시포인트가 많이 몰려있는 지역은 마커를 하나하나 다 그리는 대신 뭉쳐서(클러스터) 숫자로
+// 보여주고, 줌인하면 자동으로 풀립니다. 10개 이상 뭉쳐있으면 빨간색, 10개 미만이면 파란색.
+const CLUSTER_COUNT_THRESHOLD = 10;
+const detailMarkerLayer = L.markerClusterGroup({
+  showCoverageOnHover: false,
+  spiderfyOnMaxZoom: true,
+  iconCreateFunction: (cluster) => {
+    const count = cluster.getChildCount();
+    const big = count >= CLUSTER_COUNT_THRESHOLD;
+    return L.divIcon({
+      html: `<div class="cluster-badge ${big ? 'cluster-big' : 'cluster-small'}">${count}</div>`,
+      className: 'cluster-icon-wrap',
+      iconSize: L.point(big ? 44 : 36, big ? 44 : 36),
+    });
+  },
+});
 const nearbyLayer = L.layerGroup().addTo(map);
 let detailMarkersByType = { sea: [], freshwater: [] };
 
@@ -272,6 +287,7 @@ function showRegionView() {
   currentView = { mode: 'region' };
   map.removeLayer(detailMarkerLayer);
   detailMarkerLayer.clearLayers();
+  nearbyLayer.clearLayers();
   rebuildProvinceLayer();
   map.setView(KOREA_VIEW.center, KOREA_VIEW.zoom);
   document.getElementById('region-nav').classList.add('hidden');
@@ -316,6 +332,7 @@ function enterProvince(name) {
   }
   detailMarkerLayer.clearLayers();
   detailMarkersByType = { sea: [], freshwater: [] };
+  nearbyLayer.clearLayers(); // 이전에 "지점 주변 보기"에서 표시했던 편의점 마커가 남아있지 않도록 정리
 
   const active = getActiveTypes();
   features.forEach((f) => {
@@ -389,6 +406,8 @@ function showNearbyPointView(latlng, radiusKm) {
   resetSpotListSheetHeight();
   renderSpotList(label);
   loadRegionWeather({ lat: latlng.lat, lng: latlng.lng });
+  // 클릭한 지점 주변의 편의점/상점도 같이 조회해서 지도에 표시합니다 (개별 낚시터를 클릭하지 않아도).
+  renderNearbyShopMarkers(latlng.lat, latlng.lng);
 }
 
 // 지도를 클릭했을 때의 동작 — 이미 권역 상세/지점 보기 상태라면 "전체 권역으로 점프"하지 않고
@@ -614,13 +633,23 @@ function setupSpotListSheetDrag() {
 }
 setupSpotListSheetDrag();
 
+// 마커가 클러스터(여러 개를 뭉친 원형 아이콘) 안에 숨어있을 수도 있으므로, 목록에서 낚시터를
+// 선택했을 때 필요하면 자동으로 줌인해서 그 마커가 실제로 보이게 만든 다음 풍선말을 엽니다.
+function focusMarkerOnMap(marker, lat, lng) {
+  if (typeof detailMarkerLayer.zoomToShowLayer === 'function') {
+    detailMarkerLayer.zoomToShowLayer(marker, () => marker.openTooltip());
+  } else {
+    map.setView([lat, lng], Math.max(map.getZoom(), 13), { animate: true });
+    marker.openTooltip();
+  }
+}
+
 function selectSpotFromList(feature, li) {
   const marker = currentFeatureMarker.get(feature);
   if (!marker) return;
   const [lng, lat] = feature.geometry.coordinates;
 
-  map.setView([lat, lng], Math.max(map.getZoom(), 13), { animate: true });
-  marker.openTooltip();
+  focusMarkerOnMap(marker, lat, lng);
 
   if (activeListItemEl) activeListItemEl.classList.remove('active');
   li.classList.add('active');
@@ -769,43 +798,88 @@ function loadTide(lat, lng, obsCode) {
     .catch(() => { el.textContent = '물때 정보를 가져오지 못했습니다.'; });
 }
 
-function loadNearby(lat, lng) {
-  const el = document.getElementById('panel-nearby');
-  el.textContent = '불러오는 중...';
+// API 키 없이도 되는 카카오맵 공개 링크 — 새 탭에서 그 지점을 카카오맵으로 바로 볼 수 있습니다.
+function kakaoMapLink(name, lat, lng) {
+  return `https://map.kakao.com/link/map/${encodeURIComponent(name)},${lat},${lng}`;
+}
+
+const SHOP_TYPE_LABEL = {
+  convenience: '편의점',
+  supermarket: '슈퍼마켓',
+  kiosk: '매점',
+  bait: '낚시/미끼',
+  fishing: '낚시용품',
+  fuel: '주유소',
+  unknown: '상점',
+};
+
+// 주변 편의점/상점을 조회해서 지도(nearbyLayer)에 마커로 표시합니다.
+// - 우측 상세 패널(특정 낚시터 클릭 시)과, 반경 내 낚시터 보기(지도 클릭 시) 양쪽에서 공용으로 씁니다.
+// - 반환값은 실패 시 null, 성공 시 서버 응답(geojson)입니다 — 호출한 쪽에서 텍스트 목록 등 추가로
+//   보여줄 게 있으면 이 값을 이어서 씁니다.
+function renderNearbyShopMarkers(lat, lng) {
   nearbyLayer.clearLayers();
-  fetch(`/api/nearby?lat=${lat}&lng=${lng}`)
+  return fetch(`/api/nearby?lat=${lat}&lng=${lng}`)
     .then((r) => r.json())
     .then((geojson) => {
-      if (geojson.error) {
-        el.textContent = `⚠️ ${geojson.error}`;
-        return;
-      }
-      const radiusKm = geojson.radiusUsed ? (geojson.radiusUsed / 1000).toFixed(geojson.radiusUsed % 1000 ? 1 : 0) : null;
-      const providerNote = geojson.provider === 'overpass'
-        ? '<div class="tide-hint">OpenStreetMap 기반이라 농어촌·섬 지역은 등록이 안 되어 있을 수 있어요. (더 정확한 검색을 원하면 카카오 로컬 API 키를 추가할 수 있습니다 — README 참고)</div>'
-        : '';
-      if (!geojson.features?.length) {
-        el.innerHTML = `<div>반경 ${radiusKm}km 내에 편의점/상점 정보가 없습니다.</div>${providerNote}`;
-        return;
-      }
-      el.innerHTML =
-        geojson.features
-          .slice(0, 15)
-          .map((f) => {
-            const distText = f.properties.distanceM != null ? ` · ${f.properties.distanceM}m` : '';
-            return `<div class="shop-item">🏪 ${escapeHtml(f.properties.name)} (${escapeHtml(f.properties.shop)})${distText}</div>`;
-          })
-          .join('') + providerNote;
+      if (geojson.error || !geojson.features?.length) return geojson;
       geojson.features.forEach((f) => {
         const [flng, flat] = f.geometry.coordinates;
+        const name = f.properties.name;
+        const typeLabel = SHOP_TYPE_LABEL[f.properties.shop] || f.properties.shop;
+        const distText = f.properties.distanceM != null ? `${f.properties.distanceM}m` : '';
+        const popupHtml = `
+          <div class="shop-popup">
+            <div class="shop-popup-name">🏪 ${escapeHtml(name)}</div>
+            <div class="shop-popup-meta">${escapeHtml(typeLabel)}${distText ? ' · ' + distText : ''}</div>
+            <a class="shop-popup-link" href="${kakaoMapLink(name, flat, flng)}" target="_blank" rel="noopener">카카오맵에서 보기 →</a>
+          </div>`;
         L.marker([flat, flng], {
           icon: L.divIcon({ className: 'shop-icon', html: '🏪', iconSize: [18, 18] }),
         })
-          .bindTooltip(f.properties.name)
+          .bindTooltip(name)
+          .bindPopup(popupHtml)
           .addTo(nearbyLayer);
       });
+      return geojson;
     })
-    .catch(() => { el.textContent = '주변 상점 정보를 가져오지 못했습니다.'; });
+    .catch(() => null);
+}
+
+function loadNearby(lat, lng) {
+  const el = document.getElementById('panel-nearby');
+  el.textContent = '불러오는 중...';
+  renderNearbyShopMarkers(lat, lng).then((geojson) => {
+    if (!geojson) {
+      el.textContent = '주변 상점 정보를 가져오지 못했습니다.';
+      return;
+    }
+    if (geojson.error) {
+      el.textContent = `⚠️ ${geojson.error}`;
+      return;
+    }
+    const radiusKm = geojson.radiusUsed ? (geojson.radiusUsed / 1000).toFixed(geojson.radiusUsed % 1000 ? 1 : 0) : null;
+    const providerNote = geojson.provider === 'overpass'
+      ? '<div class="tide-hint">OpenStreetMap 기반이라 농어촌·섬 지역은 등록이 안 되어 있을 수 있어요. (더 정확한 검색을 원하면 카카오 로컬 API 키를 추가할 수 있습니다 — README 참고)</div>'
+      : '';
+    if (!geojson.features?.length) {
+      el.innerHTML = `<div>반경 ${radiusKm}km 내에 편의점/상점 정보가 없습니다.</div>${providerNote}`;
+      return;
+    }
+    el.innerHTML =
+      geojson.features
+        .slice(0, 15)
+        .map((f) => {
+          const [flng, flat] = f.geometry.coordinates;
+          const distText = f.properties.distanceM != null ? ` · ${f.properties.distanceM}m` : '';
+          const typeLabel = SHOP_TYPE_LABEL[f.properties.shop] || f.properties.shop;
+          return (
+            `<div class="shop-item">🏪 ${escapeHtml(f.properties.name)} (${escapeHtml(typeLabel)})${distText}` +
+            ` · <a href="${kakaoMapLink(f.properties.name, flat, flng)}" target="_blank" rel="noopener">카카오맵</a></div>`
+          );
+        })
+        .join('') + providerNote;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -879,8 +953,7 @@ function goToSearchResult(feature) {
     const marker = currentFeatureMarker.get(feature);
     if (marker) {
       const [lng, lat] = feature.geometry.coordinates;
-      map.setView([lat, lng], Math.max(map.getZoom(), 13), { animate: true });
-      marker.openTooltip();
+      focusMarkerOnMap(marker, lat, lng);
       openPanel(feature.properties, lat, lng);
     }
   }
