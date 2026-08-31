@@ -97,7 +97,12 @@ function makeSpotMarker(feature) {
   const type = waterTypeOf(feature);
   const marker = L.marker([lat, lng], { icon: pinIcon(type) });
   marker.bindTooltip(tooltipHtml(p), { direction: 'top', opacity: 0.97, className: 'spot-tooltip-wrapper' });
-  marker.on('click', () => openPanel(p, lat, lng));
+  marker.on('click', (e) => {
+    // 마커 클릭이 지도 자체의 클릭으로도 전파되면, 아래 "지점 주변 보기" 지도 클릭 핸들러가
+    // 같이 실행돼서 목록이 그 마커 위치 기준으로 다시 바뀌어버립니다 — 그걸 막습니다.
+    L.DomEvent.stopPropagation(e);
+    openPanel(p, lat, lng);
+  });
   return marker;
 }
 
@@ -193,11 +198,13 @@ function countsByProvince() {
 function provinceStyle(count) {
   const has = count > 0;
   return {
-    color: '#1d6fb8',
-    weight: 1.3,
+    // 경계선은 데이터(건수)와 무관하게 항상 또렷한 색/두께로 고정해서, 인접한 권역끼리도
+    // 선으로 확실히 구분되게 합니다. (채움 색/투명도만 건수에 따라 달라집니다)
+    color: '#4b5a6b',
+    weight: 1.4,
+    opacity: 0.85,
     fillColor: '#1d6fb8',
     fillOpacity: has ? Math.min(0.12 + count * 0.035, 0.55) : 0.04,
-    opacity: has ? 0.8 : 0.35,
   };
 }
 
@@ -224,19 +231,32 @@ function rebuildProvinceLayer() {
         const short = FULL_TO_SHORT[name] || name;
         const count = counts.get(name) || 0;
         layer.bindTooltip(`${short} · ${count}곳`, { sticky: true });
-        layer.on('click', () => enterProvince(name));
+        layer.on('click', (e) => {
+          // 권역 폴리곤 클릭은 여기서 확정적으로 처리하므로, 지도 자체의 클릭으로 다시 전파되어
+          // 아래 map.on('click', ...)이 같은 클릭에 대해 또 실행되는 걸 항상 막습니다.
+          L.DomEvent.stopPropagation(e);
+          if (currentView.mode === 'region') {
+            // 전체 권역 화면에서의 클릭은 원래 동작 그대로: 그 권역 전체로 드릴다운.
+            enterProvince(name);
+          } else {
+            // 이미 권역 상세/지점 보기 상태라면, 권역 전체로 점프하지 않고 클릭한 지점 주변만 보여줍니다.
+            showNearbyPointView(e.latlng, POINT_VIEW_RADIUS_KM);
+          }
+        });
         layer.on('mouseover', () => {
-          // 권역 상세 뷰에서는 지금 보고 있는 권역(투명 처리된 폴리곤)은 굳이 강조하지 않고,
-          // 다른 권역만 살짝 강조해서 "클릭하면 이동" 힌트를 줍니다.
-          if (currentView.mode === 'detail') {
-            if (name !== currentView.name) layer.setStyle({ weight: 2, fillOpacity: 0.16, opacity: 0.55 });
+          // 권역 상세/지점 보기 상태에서는 지금 보고 있는 권역(투명 처리된 폴리곤)은 굳이 강조하지 않고,
+          // 다른 권역만 살짝 강조해서 "클릭하면 주변이 바뀐다"는 힌트를 줍니다.
+          if (currentView.mode !== 'region') {
+            const isActive = currentView.mode === 'detail' && name === currentView.name;
+            if (!isActive) layer.setStyle({ weight: 2, fillOpacity: 0.16, opacity: 0.55 });
             return;
           }
           layer.setStyle({ weight: 2.5, fillOpacity: Math.min((counts.get(name) || 0) * 0.035 + 0.25, 0.7) });
         });
         layer.on('mouseout', () => {
-          if (currentView.mode === 'detail') {
-            layer.setStyle(detailProvinceStyle(name === currentView.name));
+          if (currentView.mode !== 'region') {
+            const isActive = currentView.mode === 'detail' && name === currentView.name;
+            layer.setStyle(detailProvinceStyle(isActive));
             return;
           }
           layer.setStyle(provinceStyle(count));
@@ -279,7 +299,8 @@ function enterProvince(name) {
   const provinceFeature = provinceFeatures.find((pf) => pf.properties.name === name);
   if (!provinceFeature) return;
 
-  currentView = { mode: 'detail', name };
+  const short = FULL_TO_SHORT[name] || name;
+  currentView = { mode: 'detail', name, label: short };
   currentRegionFeatures = features;
   currentFeatureMarker = new Map();
 
@@ -308,25 +329,86 @@ function enterProvince(name) {
   const bounds = L.geoJSON(provinceFeature).getBounds();
   map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
 
-  const short = FULL_TO_SHORT[name] || name;
   document.getElementById('region-nav').classList.remove('hidden');
   document.getElementById('region-title').textContent = `${short} · 낚시포인트 ${features.length}곳`;
   document.getElementById('hint').classList.add('hidden');
 
+  resetSpotListSheetHeight();
   renderSpotList(short);
-  loadRegionWeather(provinceFeature);
+  const [wLng, wLat] = bboxCenterOf(provinceFeature.geometry);
+  loadRegionWeather({ lat: wLat, lng: wLng });
 }
 
+// 지도를 클릭했을 때 "그 지점 주변"만 보여줄 기본 반경(km). 값만 바꾸면 전체 동작에 바로 적용됩니다.
+const POINT_VIEW_RADIUS_KM = 15;
+
+// 이미 권역 상세(또는 지점 보기) 상태에서 지도의 다른 곳(시/도 경계가 없는 바다 위 등 포함)을
+// 클릭하면, 전체 권역으로 이동하는 대신 클릭한 지점을 중심으로 반경 내 낚시터만 다시 보여줍니다.
+function showNearbyPointView(latlng, radiusKm) {
+  const center = [latlng.lng, latlng.lat]; // haversineKm은 [lng, lat] 순서
+  const features = allFeatures.filter((f) => haversineKm(center, f.geometry.coordinates) <= radiusKm);
+  const label = `선택 지점 주변 (반경 ${radiusKm}km)`;
+
+  currentView = { mode: 'point', lat: latlng.lat, lng: latlng.lng, radiusKm, label };
+  currentRegionFeatures = features;
+  currentFeatureMarker = new Map();
+
+  // 특정 권역에 "들어가 있는" 상태가 아니므로, 모든 시/도 경계를 똑같이 옅은 스타일로 둡니다.
+  if (provinceLayer) {
+    if (!map.hasLayer(provinceLayer)) provinceLayer.addTo(map);
+    provinceLayer.eachLayer((layer) => layer.setStyle(detailProvinceStyle(false)));
+    provinceLayer.bringToBack();
+  }
+  detailMarkerLayer.clearLayers();
+  detailMarkersByType = { sea: [], freshwater: [] };
+
+  const active = getActiveTypes();
+  features.forEach((f) => {
+    const marker = makeSpotMarker(f);
+    currentFeatureMarker.set(f, marker);
+    detailMarkersByType[waterTypeOf(f)].push(marker);
+    if (active[waterTypeOf(f)]) marker.addTo(detailMarkerLayer);
+  });
+  detailMarkerLayer.addTo(map);
+
+  // 클릭한 지점이 중심에 오고, 반경 전체가 화면에 들어오도록 맞춥니다.
+  // (L.circle을 지도에 추가하지 않고 getBounds()를 바로 쓰면 내부적으로 지도 투영 정보가
+  // 없어서 에러가 나므로, 위도/경도 오프셋으로 간단히 사각 범위를 직접 계산합니다)
+  const latDelta = radiusKm / 111; // 위도 1도 ≈ 111km
+  const lngDelta = radiusKm / (111 * Math.cos((latlng.lat * Math.PI) / 180));
+  const radiusBounds = L.latLngBounds(
+    [latlng.lat - latDelta, latlng.lng - lngDelta],
+    [latlng.lat + latDelta, latlng.lng + lngDelta]
+  );
+  map.fitBounds(radiusBounds, { padding: [40, 40], maxZoom: 13 });
+
+  document.getElementById('region-nav').classList.remove('hidden');
+  document.getElementById('region-title').textContent = `${label} · 낚시포인트 ${features.length}곳`;
+  document.getElementById('hint').classList.add('hidden');
+
+  resetSpotListSheetHeight();
+  renderSpotList(label);
+  loadRegionWeather({ lat: latlng.lat, lng: latlng.lng });
+}
+
+// 지도를 클릭했을 때의 동작 — 이미 권역 상세/지점 보기 상태라면 "전체 권역으로 점프"하지 않고
+// 클릭한 지점 주변만 다시 보여줍니다. (시/도 경계 폴리곤 위 클릭은 위 onEachFeature의 click에서
+// 먼저 처리되고 stopPropagation되므로, 여기는 경계가 없는 바다 등 나머지 영역을 클릭했을 때만 실행됩니다)
+map.on('click', (e) => {
+  if (currentView.mode === 'region') return;
+  showNearbyPointView(e.latlng, POINT_VIEW_RADIUS_KM);
+});
+
 // 기상청 단기예보는 5km 격자 단위(사실상 지역 단위) 정보라 낚시터 하나하나가 아니라
-// "이 권역은 지금 대략 이런 날씨"로 봐도 무방합니다. 권역의 대표지점(경계 바운딩박스 중심) 기준으로
-// 한 번만 조회해서 상단 권역 타이틀 옆에 배지로 보여줍니다.
-function loadRegionWeather(provinceFeature) {
+// "이 주변은 지금 대략 이런 날씨"로 봐도 무방합니다. 대표지점 기준으로 한 번만 조회해서
+// 상단 타이틀 옆에 배지로 보여줍니다.
+function loadRegionWeather(point) {
   const el = document.getElementById('region-weather');
-  if (!provinceFeature) {
+  if (!point) {
     el.textContent = '';
     return;
   }
-  const [lng, lat] = bboxCenterOf(provinceFeature.geometry);
+  const { lat, lng } = point;
   el.textContent = '· 날씨 불러오는 중...';
   fetch(`/api/weather?lat=${lat}&lng=${lng}`)
     .then((r) => r.json())
@@ -354,7 +436,7 @@ document.getElementById('btn-back').addEventListener('click', showRegionView);
 // (17개 시/도 전체를 기준으로 드릴다운 시 도달하는 최소 줌 레벨이 8이어서, 7 이하를 "축소됨"으로 판단)
 const AUTO_COLLAPSE_ZOOM = KOREA_VIEW.zoom;
 map.on('zoomend', () => {
-  if (currentView.mode === 'detail' && map.getZoom() <= AUTO_COLLAPSE_ZOOM) {
+  if (currentView.mode !== 'region' && map.getZoom() <= AUTO_COLLAPSE_ZOOM) {
     showRegionView();
   }
 });
@@ -425,6 +507,113 @@ function renderSpotList(regionShortName) {
   listEl.classList.remove('hidden');
 }
 
+// ---------------------------------------------------------------------------
+// 모바일 바텀시트: 목록 창 헤더를 손가락으로 위아래로 끌면 목록 안의 데이터 스크롤과는
+// 별개로, 창 전체의 높이(=얼마나 펼쳐 보이는지)가 바뀝니다.
+// - 헤더(제목/칩 버튼이 있는 줄) 영역에서만 드래그를 인식합니다 — 목록 본문(#spot-list-body)의
+//   터치는 그대로 일반 스크롤로 남겨둡니다.
+// - 충분히 움직이기 전까지는 그냥 "탭"으로 보고 아무것도 안 해서, 칩 버튼 클릭이 평소처럼 동작합니다.
+// - 손을 떼면 접힘/기본/펼침 세 지점 중 가장 가까운 높이로 스냅됩니다.
+// ---------------------------------------------------------------------------
+const SHEET_BREAKPOINTS_VH = { collapsed: 11, default: 42, expanded: 82 };
+
+function isMobileSheetLayout() {
+  return window.matchMedia('(max-width: 680px)').matches;
+}
+
+function resetSpotListSheetHeight() {
+  const listEl = document.getElementById('spot-list');
+  if (listEl) listEl.style.maxHeight = '';
+}
+
+function setupSpotListSheetDrag() {
+  const sheet = document.getElementById('spot-list');
+  const handle = document.getElementById('spot-list-header');
+  if (!sheet || !handle) return;
+
+  const vh = (v) => window.innerHeight * (v / 100);
+  const DRAG_THRESHOLD_PX = 8;
+
+  let dragging = false;
+  let movedEnough = false;
+  let startY = 0;
+  let startHeight = 0;
+  let draggedHeight = 0; // 지금까지 끌어서 "의도한" 높이 — 목록이 비어있어 실제 렌더링 높이가
+                         // max-height보다 작을 수 있으므로, 스냅 판정은 실제 렌더링 높이가 아니라
+                         // 이 값(의도한 높이) 기준으로 합니다.
+
+  function clampHeight(h) {
+    return Math.max(vh(SHEET_BREAKPOINTS_VH.collapsed), Math.min(vh(SHEET_BREAKPOINTS_VH.expanded), h));
+  }
+
+  function onStart(clientY) {
+    if (!isMobileSheetLayout()) return;
+    dragging = true;
+    movedEnough = false;
+    startY = clientY;
+    // 시작 높이는 "지금 펼쳐진 정도"를 기준으로 잡아야 하므로, 목록이 비어서 실제 렌더링 높이가
+    // 작더라도 직전에 설정해둔 max-height(없으면 기본 42vh)를 기준으로 삼습니다.
+    const inlineMax = parseFloat(sheet.style.maxHeight);
+    startHeight = Number.isFinite(inlineMax) ? inlineMax : vh(SHEET_BREAKPOINTS_VH.default);
+    draggedHeight = startHeight;
+    sheet.style.transition = 'none';
+  }
+
+  function onMove(clientY, evt) {
+    if (!dragging) return;
+    const dy = startY - clientY; // 위로 끌면 +(커짐), 아래로 끌면 -(작아짐)
+    if (!movedEnough && Math.abs(dy) > DRAG_THRESHOLD_PX) movedEnough = true;
+    if (!movedEnough) return;
+    if (evt && evt.cancelable) evt.preventDefault();
+    draggedHeight = clampHeight(startHeight + dy);
+    sheet.style.maxHeight = `${draggedHeight}px`;
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = 'max-height 0.2s ease';
+    if (!movedEnough) {
+      // 실제로는 거의 움직이지 않은 "탭"이었으므로 아무것도 바꾸지 않습니다.
+      return;
+    }
+    const points = [
+      vh(SHEET_BREAKPOINTS_VH.collapsed),
+      vh(SHEET_BREAKPOINTS_VH.default),
+      vh(SHEET_BREAKPOINTS_VH.expanded),
+    ];
+    let nearest = points[0];
+    let bestDiff = Infinity;
+    points.forEach((p) => {
+      const diff = Math.abs(draggedHeight - p);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        nearest = p;
+      }
+    });
+    sheet.style.maxHeight = `${nearest}px`;
+  }
+
+  handle.addEventListener('touchstart', (e) => onStart(e.touches[0].clientY), { passive: true });
+  handle.addEventListener('touchmove', (e) => onMove(e.touches[0].clientY, e), { passive: false });
+  handle.addEventListener('touchend', onEnd);
+  handle.addEventListener('touchcancel', onEnd);
+
+  // 마우스(창 폭을 줄여서 모바일 레이아웃을 흉내 낼 때도 같은 방식으로 테스트할 수 있도록)
+  handle.addEventListener('mousedown', (e) => {
+    onStart(e.clientY);
+    const onMouseMove = (ev) => onMove(ev.clientY, ev);
+    const onMouseUp = () => {
+      onEnd();
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+}
+setupSpotListSheetDrag();
+
 function selectSpotFromList(feature, li) {
   const marker = currentFeatureMarker.get(feature);
   if (!marker) return;
@@ -470,8 +659,7 @@ function applyFilters() {
       }
     });
   });
-  const short = FULL_TO_SHORT[currentView.name] || currentView.name;
-  renderSpotList(short);
+  renderSpotList(currentView.label);
 }
 
 document.getElementById('f-sea').addEventListener('change', applyFilters);
