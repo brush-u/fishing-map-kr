@@ -377,10 +377,15 @@ body {
 }
 
 .shop-popup { font-size: 17px; min-width: 140px; }
-.shop-popup-name { font-weight: 700; margin-bottom: 2px; }
-.shop-popup-meta { color: var(--muted); font-size: 16px; margin-bottom: 6px; }
-.shop-popup-link { color: var(--sea); font-size: 16px; text-decoration: none; font-weight: 600; }
-.shop-popup-link:hover { text-decoration: underline; }
+.shop-popup-name {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 2px;
+  color: var(--text);
+  text-decoration: none;
+}
+.shop-popup-name:hover { color: var(--sea); text-decoration: underline; }
+.shop-popup-meta { color: var(--muted); font-size: 16px; margin-bottom: 2px; }
 
 /* 낚시포인트 마커 클러스터(여러 개를 뭉쳐 보여주는 원형 배지) — 10개 기준 빨강/파랑 */
 .cluster-icon-wrap { background: transparent; border: none; }
