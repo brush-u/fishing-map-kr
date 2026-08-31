@@ -132,12 +132,16 @@ function makeSpotMarker(feature) {
   const p = feature.properties;
   const type = spotCategory(feature);
   const marker = L.marker([lat, lng], { icon: pinIcon(type) });
+<<<<<<< HEAD
   // 예전에는 마우스를 올렸을 때만 뜨는 툴팁(bindTooltip)이었는데, 마우스를 떼면 바로 사라져서
   // 안의 구글맵 링크를 클릭할 수 없었습니다. 클릭하면 열리고 다시 클릭하거나 다른 곳을 클릭할
   // 때까지 유지되는 팝업(bindPopup)으로 바꿔서 링크를 편하게 클릭할 수 있게 합니다.
   marker.bindPopup(tooltipHtml(p, lat, lng), {
     className: 'spot-tooltip-wrapper',
   });
+=======
+  marker.bindTooltip(tooltipHtml(p), { direction: 'top', opacity: 0.97, className: 'spot-tooltip-wrapper' });
+>>>>>>> 07ecebcbcd683b0309229da9e2b6fd126dc3ab7d
   marker.on('click', (e) => {
     // 마커 클릭이 지도 자체의 클릭으로도 전파되면, 아래 "지점 주변 보기" 지도 클릭 핸들러가
     // 같이 실행돼서 목록이 그 마커 위치 기준으로 다시 바뀌어버립니다 — 그걸 막습니다.
@@ -357,7 +361,11 @@ function enterProvince(name) {
     provinceLayer.bringToBack();
   }
   detailMarkerLayer.clearLayers();
+<<<<<<< HEAD
   detailMarkersByType = { sea: [], freshwater: [], boat: [] };
+=======
+  detailMarkersByType = { sea: [], freshwater: [] };
+>>>>>>> 07ecebcbcd683b0309229da9e2b6fd126dc3ab7d
   nearbyLayer.clearLayers(); // 이전에 "지점 주변 보기"에서 표시했던 편의점 마커가 남아있지 않도록 정리
 
   const active = getActiveTypes();
@@ -403,12 +411,17 @@ function showNearbyPointView(latlng, radiusKm) {
     provinceLayer.bringToBack();
   }
   detailMarkerLayer.clearLayers();
+<<<<<<< HEAD
   detailMarkersByType = { sea: [], freshwater: [], boat: [] };
+=======
+  detailMarkersByType = { sea: [], freshwater: [] };
+>>>>>>> 07ecebcbcd683b0309229da9e2b6fd126dc3ab7d
 
   const active = getActiveTypes();
   features.forEach((f) => {
     const marker = makeSpotMarker(f);
     currentFeatureMarker.set(f, marker);
+<<<<<<< HEAD
     detailMarkersByType[spotCategory(f)].push(marker);
     if (active[spotCategory(f)]) marker.addTo(detailMarkerLayer);
   });
@@ -418,6 +431,23 @@ function showNearbyPointView(latlng, radiusKm) {
   // (사용자가 확대해둔 상태에서 클릭하면 갑자기 줄어들고, 축소해둔 상태에서 클릭하면 갑자기
   // 커지는 문제) — 클릭한 지점은 이미 현재 화면 안에 보이는 곳이므로, 지도 위치/줌은 그대로
   // 두고 목록/마커만 갱신합니다.
+=======
+    detailMarkersByType[waterTypeOf(f)].push(marker);
+    if (active[waterTypeOf(f)]) marker.addTo(detailMarkerLayer);
+  });
+  detailMarkerLayer.addTo(map);
+
+  // 클릭한 지점이 중심에 오고, 반경 전체가 화면에 들어오도록 맞춥니다.
+  // (L.circle을 지도에 추가하지 않고 getBounds()를 바로 쓰면 내부적으로 지도 투영 정보가
+  // 없어서 에러가 나므로, 위도/경도 오프셋으로 간단히 사각 범위를 직접 계산합니다)
+  const latDelta = radiusKm / 111; // 위도 1도 ≈ 111km
+  const lngDelta = radiusKm / (111 * Math.cos((latlng.lat * Math.PI) / 180));
+  const radiusBounds = L.latLngBounds(
+    [latlng.lat - latDelta, latlng.lng - lngDelta],
+    [latlng.lat + latDelta, latlng.lng + lngDelta]
+  );
+  map.fitBounds(radiusBounds, { padding: [40, 40], maxZoom: 13 });
+>>>>>>> 07ecebcbcd683b0309229da9e2b6fd126dc3ab7d
 
   document.getElementById('region-nav').classList.remove('hidden');
   document.getElementById('region-title').textContent = `${label} · 낚시포인트 ${features.length}곳`;
@@ -883,9 +913,13 @@ function renderNearbyShopMarkers(lat, lng) {
             <a class="shop-popup-name" href="${kakaoMapLink(name, flat, flng)}" target="_blank" rel="noopener">${shopStyle.emoji} ${escapeHtml(name)}</a>
             <div class="shop-popup-meta">${typeLabelHtml}${distText ? ' · ' + distText : ''}</div>
           </div>`;
+<<<<<<< HEAD
         // 클릭하면 열리고, 다시 클릭하거나 다른 곳을 클릭할 때까지 유지되는 기본 팝업 동작을 그대로 씁니다
         // (예전엔 mouseover/mouseout으로 강제로 호버 방식처럼 만들어서 안의 링크를 클릭할 수 없었습니다).
         const shopMarker = L.marker([flat, flng], {
+=======
+        L.marker([flat, flng], {
+>>>>>>> 07ecebcbcd683b0309229da9e2b6fd126dc3ab7d
           icon: L.divIcon({
             className: 'shop-icon',
             html: `<div class="shop-icon-badge" style="background:${shopStyle.color}">${shopStyle.emoji}</div>`,
@@ -893,6 +927,10 @@ function renderNearbyShopMarkers(lat, lng) {
             iconAnchor: [15, 15],
           }),
         })
+<<<<<<< HEAD
+=======
+          .bindTooltip(name)
+>>>>>>> 07ecebcbcd683b0309229da9e2b6fd126dc3ab7d
           .bindPopup(popupHtml)
           .addTo(nearbyLayer);
       });

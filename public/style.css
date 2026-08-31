@@ -457,7 +457,11 @@ body {
 .spot-tooltip .tt-name {
   font-weight: 700;
   font-size: 17px;
+<<<<<<< HEAD
   display: inline-flex;
+=======
+  display: flex;
+>>>>>>> 07ecebcbcd683b0309229da9e2b6fd126dc3ab7d
   align-items: center;
   gap: 6px;
   color: var(--text);
