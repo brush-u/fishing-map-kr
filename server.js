@@ -468,6 +468,19 @@ app.get('/api/nearby', async (req, res) => {
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
+// 지금 이 서버(배포본)에 어떤 API 키가 실제로 설정돼있는지 true/false로만 보여줍니다 (키 값 자체는
+// 절대 내려주지 않음). Cloud Run 콘솔까지 안 들어가도, 배포 주소 뒤에 /api/status를 붙여서 열어보면
+// "GitHub Secrets/​.env에 넣은 키가 이 배포에 실제로 반영됐는지"를 바로 확인할 수 있습니다.
+app.get('/api/status', (req, res) => {
+  res.json({
+    kmaForecastKey: !!process.env.KMA_FORECAST_KEY,
+    khoaTideKey: !!process.env.KHOA_TIDE_KEY,
+    khoaFishingIndexKey: !!process.env.KHOA_FISHING_INDEX_KEY,
+    kakaoRestApiKey: !!process.env.KAKAO_REST_API_KEY,
+    note: '각 값이 false면, 그 키가 이 서버에는 아직 반영되지 않은 것입니다 (.env 또는 GitHub Secrets를 확인해주세요).',
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`fishing-map-kr listening on :${PORT}`);
 });
