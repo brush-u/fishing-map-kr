@@ -334,14 +334,17 @@ function buildOverpassQuery(radius, lat, lon) {
   `;
 }
 
-// Overpass 공개 서버(overpass-api.de)는 무료지만 혼잡할 때 느려지거나 응답이 없을 때가 있습니다.
-// OVERPASS_ENDPOINT를 직접 지정하지 않았다면, 기본 서버가 실패/타임아웃될 경우 다른 무료 미러 서버로
-// 자동으로 한 번 더 시도해서 "상점 정보를 가져오지 못했습니다" 실패를 줄입니다.
+// Overpass 공개 서버(overpass-api.de)는 무료지만, 혼잡할 때 느려지거나 응답이 없을 때가 있고
+// (특히 클라우드/데이터센터 IP에서 오는 요청은 더 자주 느리거나 막히는 경향이 있습니다 — Cloud Run도
+// 여기 해당), 서버 하나만 쓰면 그 서버가 느릴 때 그대로 타임아웃이 나버립니다.
+// OVERPASS_ENDPOINT를 직접 지정하지 않았다면, 여러 무료 미러 서버에 "동시에" 물어보고
+// 가장 먼저 응답하는 서버 결과를 씁니다 (순서대로 하나씩 기다리는 것보다 훨씬 빠르고 안정적).
 const OVERPASS_ENDPOINTS = process.env.OVERPASS_ENDPOINT
   ? [process.env.OVERPASS_ENDPOINT]
   : [
       'https://overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.osm.ch/api/interpreter',
     ];
 
 function parseOverpassElements(data, lat, lon) {
@@ -361,30 +364,36 @@ function parseOverpassElements(data, lat, lon) {
     .filter(Boolean);
 }
 
+async function queryOverpassEndpoint(endpoint, query, lat, lon, timeoutMs) {
+  try {
+    const r = await fetchWithTimeout(
+      endpoint,
+      { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: query },
+      timeoutMs
+    );
+    if (!r.ok) throw new Error(`Overpass HTTP ${r.status} (${endpoint})`);
+    const data = await r.json();
+    return parseOverpassElements(data, lat, lon);
+  } catch (err) {
+    console.warn(`Overpass 서버 실패 (${endpoint}): ${err.message || err}`);
+    throw err;
+  }
+}
+
 async function queryOverpass(lat, lon, radius) {
   const query = buildOverpassQuery(radius, lat, lon);
-  let lastErr = null;
+  const attempts = OVERPASS_ENDPOINTS.map((endpoint) => queryOverpassEndpoint(endpoint, query, lat, lon, 9000));
 
-  for (let i = 0; i < OVERPASS_ENDPOINTS.length; i++) {
-    const endpoint = OVERPASS_ENDPOINTS[i];
-    try {
-      // 서버 하나당 너무 오래 기다리지 않도록 타임아웃을 짧게 두고, 실패하면 다음 서버로 넘어갑니다.
-      const r = await fetchWithTimeout(
-        endpoint,
-        { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: query },
-        9000
-      );
-      if (!r.ok) throw new Error(`Overpass HTTP ${r.status} (${endpoint})`);
-      const data = await r.json();
-      return parseOverpassElements(data, lat, lon);
-    } catch (err) {
-      lastErr = err;
-      const hasNext = i < OVERPASS_ENDPOINTS.length - 1;
-      console.warn(`Overpass 서버 실패 (${endpoint}): ${err.message || err}${hasNext ? ' — 다음 미러로 재시도합니다.' : ''}`);
-    }
+  if (attempts.length === 1) return attempts[0];
+
+  try {
+    // 여러 미러 중 가장 먼저 성공하는 쪽을 그대로 씁니다.
+    return await Promise.any(attempts);
+  } catch (aggregateErr) {
+    // AggregateError: 모든 미러가 실패한 경우. 원인 중 하나를 대표로 올려서
+    // 아래 /api/nearby 핸들러가 타임아웃 여부 등을 판단할 수 있게 합니다.
+    throw (aggregateErr.errors && aggregateErr.errors[0]) || aggregateErr;
   }
-
-  throw lastErr || new Error('모든 Overpass 서버 호출에 실패했습니다.');
 }
 
 const KAKAO_CATEGORY_LABELS = { CS2: 'convenience', OL7: 'fuel' };
