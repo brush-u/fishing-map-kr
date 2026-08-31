@@ -33,6 +33,11 @@ const CLUSTER_COUNT_THRESHOLD = 10;
 const detailMarkerLayer = L.markerClusterGroup({
   showCoverageOnHover: false,
   spiderfyOnMaxZoom: true,
+  // 기본값(80px)보다 작게 잡아서 클러스터가 더 잘게 나뉘게 하고, 어느 정도 줌인하면(14 이상)
+  // 아예 클러스터링을 끄고 낱개 마커를 바로 보여줘서 — 클릭을 여러 번 안 해도 개별 낚시포인트에
+  // 빨리 도달하도록 합니다.
+  maxClusterRadius: 50,
+  disableClusteringAtZoom: 14,
   iconCreateFunction: (cluster) => {
     const count = cluster.getChildCount();
     const big = count >= CLUSTER_COUNT_THRESHOLD;
@@ -813,6 +818,17 @@ const SHOP_TYPE_LABEL = {
   unknown: '상점',
 };
 
+// 지도 위 상점 마커 — 종류별로 이모지/색깔을 다르게 줘서 한눈에 구분되게 합니다.
+const SHOP_TYPE_STYLE = {
+  convenience: { emoji: '🏪', color: '#1d6fb8' },
+  supermarket: { emoji: '🛒', color: '#2e8b4f' },
+  kiosk: { emoji: '🏪', color: '#6b7785' },
+  bait: { emoji: '🎣', color: '#c9822e' },
+  fishing: { emoji: '🎣', color: '#c9822e' },
+  fuel: { emoji: '⛽', color: '#e08a1e' },
+  unknown: { emoji: '📍', color: '#6b7785' },
+};
+
 // 주변 편의점/상점을 조회해서 지도(nearbyLayer)에 마커로 표시합니다.
 // - 우측 상세 패널(특정 낚시터 클릭 시)과, 반경 내 낚시터 보기(지도 클릭 시) 양쪽에서 공용으로 씁니다.
 // - 반환값은 실패 시 null, 성공 시 서버 응답(geojson)입니다 — 호출한 쪽에서 텍스트 목록 등 추가로
@@ -834,8 +850,14 @@ function renderNearbyShopMarkers(lat, lng) {
             <div class="shop-popup-meta">${escapeHtml(typeLabel)}${distText ? ' · ' + distText : ''}</div>
             <a class="shop-popup-link" href="${kakaoMapLink(name, flat, flng)}" target="_blank" rel="noopener">카카오맵에서 보기 →</a>
           </div>`;
+        const shopStyle = SHOP_TYPE_STYLE[f.properties.shop] || SHOP_TYPE_STYLE.unknown;
         L.marker([flat, flng], {
-          icon: L.divIcon({ className: 'shop-icon', html: '🏪', iconSize: [18, 18] }),
+          icon: L.divIcon({
+            className: 'shop-icon',
+            html: `<div class="shop-icon-badge" style="background:${shopStyle.color}">${shopStyle.emoji}</div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+          }),
         })
           .bindTooltip(name)
           .bindPopup(popupHtml)
