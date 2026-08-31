@@ -855,9 +855,8 @@ function renderNearbyShopMarkers(lat, lng) {
         const distText = f.properties.distanceM != null ? `${f.properties.distanceM}m` : '';
         const popupHtml = `
           <div class="shop-popup">
-            <div class="shop-popup-name">${shopStyle.emoji} ${escapeHtml(name)}</div>
+            <a class="shop-popup-name" href="${kakaoMapLink(name, flat, flng)}" target="_blank" rel="noopener">${shopStyle.emoji} ${escapeHtml(name)}</a>
             <div class="shop-popup-meta">${typeLabelHtml}${distText ? ' · ' + distText : ''}</div>
-            <a class="shop-popup-link" href="${kakaoMapLink(name, flat, flng)}" target="_blank" rel="noopener">카카오맵에서 보기 →</a>
           </div>`;
         L.marker([flat, flng], {
           icon: L.divIcon({
@@ -906,8 +905,8 @@ function loadNearby(lat, lng) {
           const shopStyle = SHOP_TYPE_STYLE[f.properties.shop] || SHOP_TYPE_STYLE.unknown;
           const typeLabelHtml = `<span style="color:${shopStyle.color};font-weight:700;">${escapeHtml(typeLabel)}</span>`;
           return (
-            `<div class="shop-item">${shopStyle.emoji} ${escapeHtml(f.properties.name)} (${typeLabelHtml})${distText}` +
-            ` · <a href="${kakaoMapLink(f.properties.name, flat, flng)}" target="_blank" rel="noopener">카카오맵</a></div>`
+            `<div class="shop-item">${shopStyle.emoji} <a href="${kakaoMapLink(f.properties.name, flat, flng)}" target="_blank" rel="noopener">${escapeHtml(f.properties.name)}</a>` +
+            ` (${typeLabelHtml})${distText}</div>`
           );
         })
         .join('') + providerNote;
