@@ -780,7 +780,14 @@ function loadTide(lat, lng, obsCode) {
     .then((r) => r.json())
     .then((t) => {
       const lines = [];
-      if (t.mocked) lines.push('⚠️ 예시 데이터 (KHOA 키/관측소 코드 미설정)');
+      if (t.mocked) lines.push(`⚠️ 예시 데이터 (${escapeHtml(t.message || 'KHOA 키 미설정')})`);
+      if (t.station) {
+        lines.push(
+          `<div class="tide-hint">관측소: ${escapeHtml(t.station.name)} (${escapeHtml(t.station.code)})` +
+            (t.station.distanceKm != null ? ` · 약 ${t.station.distanceKm}km` : '') +
+            '</div>'
+        );
+      }
       if (t.error) lines.push(`⚠️ ${escapeHtml(t.error)}`);
       if (t.apiError) {
         const { code, msg, hint } = t.apiError;
