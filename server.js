@@ -398,31 +398,62 @@ async function queryOverpass(lat, lon, radius) {
 
 const KAKAO_CATEGORY_LABELS = { CS2: 'convenience', OL7: 'fuel' };
 
+// 카카오 로컬의 category_group_code 목록에는 "낚시용품점" 카테고리가 따로 없어서,
+// 편의점/주유소는 카테고리 검색으로, 낚시용품/미끼가게는 키워드 검색("낚시")으로 별도 조회합니다.
+async function queryKakaoCategory(lat, lon, radius, apiKey, code) {
+  const url = new URL('https://dapi.kakao.com/v2/local/search/category.json');
+  url.searchParams.set('category_group_code', code);
+  url.searchParams.set('x', String(lon));
+  url.searchParams.set('y', String(lat));
+  url.searchParams.set('radius', String(Math.min(radius, 20000)));
+  url.searchParams.set('sort', 'distance');
+  url.searchParams.set('size', '15');
+  const r = await fetchWithTimeout(url.toString(), { headers: { Authorization: `KakaoAK ${apiKey}` } }, 8000);
+  if (!r.ok) throw new Error(`Kakao Local API HTTP ${r.status}`);
+  const data = await r.json();
+  return (data.documents || []).map((d) => ({
+    name: d.place_name,
+    shop: KAKAO_CATEGORY_LABELS[code] || code,
+    brand: null,
+    lat: parseFloat(d.y),
+    lon: parseFloat(d.x),
+    distanceM: d.distance ? parseInt(d.distance, 10) : Math.round(haversineMeters(lat, lon, parseFloat(d.y), parseFloat(d.x))),
+  }));
+}
+
+async function queryKakaoKeyword(lat, lon, radius, apiKey, keyword, shopType) {
+  const url = new URL('https://dapi.kakao.com/v2/local/search/keyword.json');
+  url.searchParams.set('query', keyword);
+  url.searchParams.set('x', String(lon));
+  url.searchParams.set('y', String(lat));
+  url.searchParams.set('radius', String(Math.min(radius, 20000)));
+  url.searchParams.set('sort', 'distance');
+  url.searchParams.set('size', '15');
+  const r = await fetchWithTimeout(url.toString(), { headers: { Authorization: `KakaoAK ${apiKey}` } }, 8000);
+  if (!r.ok) throw new Error(`Kakao Local API HTTP ${r.status}`);
+  const data = await r.json();
+  return (data.documents || []).map((d) => ({
+    name: d.place_name,
+    shop: shopType,
+    brand: null,
+    lat: parseFloat(d.y),
+    lon: parseFloat(d.x),
+    distanceM: d.distance ? parseInt(d.distance, 10) : Math.round(haversineMeters(lat, lon, parseFloat(d.y), parseFloat(d.x))),
+  }));
+}
+
 async function queryKakaoLocal(lat, lon, radius, apiKey) {
-  const categories = ['CS2', 'OL7']; // 편의점, 주유소/충전소
-  const results = await Promise.all(
-    categories.map(async (code) => {
-      const url = new URL('https://dapi.kakao.com/v2/local/search/category.json');
-      url.searchParams.set('category_group_code', code);
-      url.searchParams.set('x', String(lon));
-      url.searchParams.set('y', String(lat));
-      url.searchParams.set('radius', String(Math.min(radius, 20000)));
-      url.searchParams.set('sort', 'distance');
-      url.searchParams.set('size', '15');
-      const r = await fetchWithTimeout(url.toString(), { headers: { Authorization: `KakaoAK ${apiKey}` } }, 8000);
-      if (!r.ok) throw new Error(`Kakao Local API HTTP ${r.status}`);
-      const data = await r.json();
-      return (data.documents || []).map((d) => ({
-        name: d.place_name,
-        shop: KAKAO_CATEGORY_LABELS[code] || code,
-        brand: null,
-        lat: parseFloat(d.y),
-        lon: parseFloat(d.x),
-        distanceM: d.distance ? parseInt(d.distance, 10) : Math.round(haversineMeters(lat, lon, parseFloat(d.y), parseFloat(d.x))),
-      }));
-    })
-  );
-  return results.flat();
+  const [cs2, ol7, bait] = await Promise.all([
+    queryKakaoCategory(lat, lon, radius, apiKey, 'CS2'), // 편의점
+    queryKakaoCategory(lat, lon, radius, apiKey, 'OL7'), // 주유소/충전소
+    queryKakaoKeyword(lat, lon, radius, apiKey, '낚시', 'bait'), // 낚시용품/미끼가게
+  ]);
+  // 키워드 검색은 카테고리 검색보다 잡음(낚시가 들어간 음식점 등)이 섞일 수 있어서,
+  // 장소명에 "낚시"가 들어간 결과만 남기고, 편의점/주유소 결과와 중복되는 항목은 제거합니다.
+  const baitFiltered = bait.filter((d) => d.name.includes('낚시'));
+  const seen = new Set([...cs2, ...ol7].map((d) => `${d.name}@${d.lat.toFixed(5)},${d.lon.toFixed(5)}`));
+  const baitDeduped = baitFiltered.filter((d) => !seen.has(`${d.name}@${d.lat.toFixed(5)},${d.lon.toFixed(5)}`));
+  return [...cs2, ...ol7, ...baitDeduped];
 }
 
 app.get('/api/nearby', async (req, res) => {
