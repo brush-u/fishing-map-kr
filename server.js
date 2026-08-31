@@ -204,20 +204,110 @@ app.get('/api/weather', async (req, res) => {
 // tideObsPreTab인지는 확실하지 않으니, 키 발급 후 data.go.kr의 활용가이드 문서에서
 // 정확한 엔드포인트명과 응답 필드명을 확인해 아래 TODO를 맞춰주세요.
 //
-// 관측소 코드(ObsCode)는 프런트엔드 물때 패널의 입력창에서 직접 넣게 되어 있습니다.
-// 전국 60개 관측소 코드/좌표 목록은 data.go.kr의 "국립해양조사원_조위관측소 운영 현황"에서
-// 내려받을 수 있습니다: https://www.data.go.kr/data/15146602/fileData.do
+// 관측소 코드(ObsCode)를 프런트엔드에서 직접 안 넣어도, 아래 TIDE_STATIONS 목록에서
+// 낚시터 좌표와 가장 가까운 관측소를 자동으로 찾아서 씁니다. (사용자가 직접 입력창에
+// 코드를 넣으면 그 값을 그대로 우선 사용합니다 — 자동으로 고른 관측소가 실제 조류/해협
+// 특성상 안 맞을 때를 위한 수동 재정의 용도)
+//
+// 출처: data.go.kr "국립해양조사원_조위관측소 운영 현황_20250818" (사용자가 직접 내려받아
+// 제공, 로그인 불필요 공개 파일데이터). 폐지되어 새 코드로 대체된 구(舊) 관측소
+// (위도(구)/가덕도(구)/안흥(구)/포항(과거)/포항_구)는 목록에서 제외했습니다.
+const TIDE_STATIONS = [
+  { code: 'IE_0060', name: '이어도', lat: 32.12277778, lon: 125.1822222 },
+  { code: 'IE_0062', name: '옹진소청초', lat: 37.423056, lon: 124.738056 },
+  { code: 'IE_0061', name: '신안가거초', lat: 33.941944, lon: 124.592778 },
+  { code: 'DT_0002', name: '평택', lat: 36.966944, lon: 126.822778 },
+  { code: 'DT_0003', name: '영광', lat: 35.426111, lon: 126.420556 },
+  { code: 'DT_0004', name: '제주', lat: 33.5275, lon: 126.543056 },
+  { code: 'DT_0005', name: '부산', lat: 35.096389, lon: 129.035278 },
+  { code: 'DT_0006', name: '묵호', lat: 37.550278, lon: 129.116389 },
+  { code: 'DT_0007', name: '목포', lat: 34.779722, lon: 126.375556 },
+  { code: 'DT_0008', name: '안산', lat: 37.192222, lon: 126.647222 },
+  { code: 'DT_0010', name: '서귀포', lat: 33.24, lon: 126.561667 },
+  { code: 'DT_0011', name: '후포', lat: 36.6775, lon: 129.453056 },
+  { code: 'DT_0012', name: '속초', lat: 38.207222, lon: 128.594167 },
+  { code: 'DT_0013', name: '울릉도', lat: 37.491389, lon: 130.913611 },
+  { code: 'DT_0016', name: '여수', lat: 34.747222, lon: 127.765556 },
+  { code: 'DT_0017', name: '대산', lat: 37.0075, lon: 126.352778 },
+  { code: 'DT_0018', name: '군산', lat: 35.975556, lon: 126.563056 },
+  { code: 'DT_0021', name: '추자도', lat: 33.961944, lon: 126.300278 },
+  { code: 'DT_0023', name: '모슬포', lat: 33.214444, lon: 126.251111 },
+  { code: 'DT_0028', name: '진도', lat: 34.377778, lon: 126.308611 },
+  { code: 'DT_0032', name: '강화대교', lat: 37.731944, lon: 126.522222 },
+  { code: 'DT_0020', name: '울산', lat: 35.501944, lon: 129.387222 },
+  { code: 'DT_0022', name: '성산포', lat: 33.474722, lon: 126.927778 },
+  { code: 'DT_0024', name: '장항', lat: 36.006944, lon: 126.6875 },
+  { code: 'DT_0026', name: '고흥발포', lat: 34.481111, lon: 127.342778 },
+  { code: 'DT_0027', name: '완도', lat: 34.315556, lon: 126.759722 },
+  { code: 'DT_0029', name: '거제도', lat: 34.801389, lon: 128.699167 },
+  { code: 'DT_0031', name: '거문도', lat: 34.028333, lon: 127.308889 },
+  { code: 'DT_0035', name: '흑산도', lat: 34.684167, lon: 125.435556 },
+  { code: 'DT_0044', name: '영종대교', lat: 37.545556, lon: 126.584444 },
+  { code: 'DT_0050', name: '태안', lat: 36.91305556, lon: 126.2388889 },
+  { code: 'DT_0051', name: '서천마량', lat: 36.12888889, lon: 126.4952778 },
+  { code: 'DT_0049', name: '광양', lat: 34.903672, lon: 127.754836 },
+  { code: 'DT_0056', name: '부산항신항', lat: 35.0775, lon: 128.786944 },
+  { code: 'DT_0057', name: '동해항', lat: 37.494722, lon: 129.143889 },
+  { code: 'DT_0055', name: '순천만', lat: 34.88411111, lon: 127.5125556 },
+  { code: 'DT_0058', name: '경인항', lat: 37.560833, lon: 126.601111 },
+  { code: 'DT_0038', name: '굴업도', lat: 37.194444, lon: 125.995 },
+  { code: 'DT_0025', name: '보령', lat: 36.406389, lon: 126.486111 },
+  { code: 'DT_0001', name: '인천', lat: 37.451944, lon: 126.592222 },
+  { code: 'DT_0052', name: '인천송도', lat: 37.33805556, lon: 126.5861111 },
+  { code: 'DT_0014', name: '통영', lat: 34.827778, lon: 128.434722 },
+  { code: 'DT_0037', name: '어청도', lat: 36.117222, lon: 125.984722 },
+  { code: 'DT_0043', name: '영흥도', lat: 37.23861111, lon: 126.4286111 },
+  { code: 'DT_0061', name: '삼천포', lat: 34.924167, lon: 128.069722 },
+  { code: 'DT_0068', name: '위도', lat: 35.61808444, lon: 126.3018158 },
+  { code: 'DT_0065', name: '덕적도', lat: 37.226333, lon: 126.156556 },
+  { code: 'DT_0066', name: '향화도', lat: 35.167667, lon: 126.359556 },
+  { code: 'DT_0067', name: '안흥', lat: 36.67463889, lon: 126.1295556 },
+  { code: 'DT_0091', name: '포항', lat: 36.047128, lon: 129.383806 },
+  { code: 'DT_0063', name: '가덕도', lat: 35.024178, lon: 128.810933 },
+  { code: 'DT_0062', name: '마산', lat: 35.1975, lon: 128.576389 },
+  { code: 'DT_0092', name: '여호항', lat: 34.661944, lon: 127.469167 },
+  { code: 'DT_0094', name: '서거차도', lat: 34.25142222, lon: 125.91545 },
+  { code: 'DT_0093', name: '소무의도', lat: 37.373069, lon: 126.440066 },
+];
+
+function findNearestTideStation(lat, lon) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const st of TIDE_STATIONS) {
+    const d = haversineMeters(lat, lon, st.lat, st.lon);
+    if (d < bestDist) {
+      bestDist = d;
+      best = st;
+    }
+  }
+  return best ? { ...best, distanceKm: Math.round((bestDist / 1000) * 10) / 10 } : null;
+}
+
 app.get('/api/tide', async (req, res) => {
   const key = process.env.KHOA_TIDE_KEY;
-  const obsCode = req.query.obsCode; // 예: DT_0001
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lng ?? req.query.lon);
   const date = req.query.date || new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
+
+  // 사용자가 직접 관측소 코드를 넣었으면 그걸 그대로 쓰고, 아니면 좌표 기준으로 가장 가까운
+  // 관측소를 자동으로 골라줍니다.
+  let obsCode = req.query.obsCode;
+  let station = null;
+  if (!obsCode && !Number.isNaN(lat) && !Number.isNaN(lon)) {
+    station = findNearestTideStation(lat, lon);
+    if (station) obsCode = station.code;
+  } else if (obsCode) {
+    station = TIDE_STATIONS.find((s) => s.code === obsCode) || null;
+  }
 
   if (!key || !obsCode) {
     return res.json({
       mocked: true,
-      message:
-        'KHOA_TIDE_KEY 또는 관측소 코드(obsCode)가 없어 예시 값을 반환합니다. 물때 패널의 "관측소 코드" 입력창에 값을 넣어보세요.',
+      message: !key
+        ? 'KHOA_TIDE_KEY가 없어 예시 값을 반환합니다.'
+        : '이 지점 근처의 관측소를 찾지 못해 예시 값을 반환합니다. 관측소 코드를 직접 입력해보세요.',
       obsCode: obsCode || null,
+      station,
       date,
       highTide: ['04:12', '16:35'],
       lowTide: ['10:24', '22:50'],
@@ -277,7 +367,7 @@ app.get('/api/tide', async (req, res) => {
         rawResponsePreview: text.slice(0, 1500),
       });
     }
-    res.json({ mocked: false, obsCode, date, raw: data });
+    res.json({ mocked: false, obsCode, station, date, raw: data });
   } catch (err) {
     console.error(err);
     res.status(502).json({ error: 'KHOA 조석 API 호출에 실패했습니다.', detail: String(err) });
