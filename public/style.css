@@ -1,6 +1,7 @@
 :root {
   --sea: #1d6fb8;
   --fresh: #2e8b4f;
+  --boat: #8b5cf6;
   --bg: #f7f8fa;
   --panel-bg: #ffffff;
   --border: #e1e4e8;
@@ -44,10 +45,12 @@ body {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  /* 상세 패널이 화면 밖으로 슬라이드 아웃될 때 가로 스크롤이 생기지 않도록 여기서 잘라냅니다 */
+  overflow: hidden;
 }
 
 #topbar h1 {
-  font-size: 18px;
+  font-size: 24px;
   margin: 0;
 }
 
@@ -55,7 +58,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
+  font-size: 17px;
 }
 
 #region-nav.hidden { display: none; }
@@ -74,7 +77,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: 17px;
 }
 
 #search-input:focus { outline: 2px solid #cfe0f5; border-color: var(--sea); }
@@ -98,34 +101,35 @@ body {
 .search-result-item {
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 17px;
   border-bottom: 1px solid #f1f2f4;
 }
 
 .search-result-item:last-child { border-bottom: none; }
 .search-result-item:hover, .search-result-item.active { background: #f5f7fa; }
 .search-result-name { font-weight: 600; }
-.search-result-meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
-.search-empty { padding: 10px 12px; color: var(--muted); font-size: 12px; }
+.search-result-meta { color: var(--muted); font-size: 15px; margin-top: 2px; }
+.search-empty { padding: 10px 12px; color: var(--muted); font-size: 16px; }
 
 #btn-back {
   border: 1px solid var(--border);
   background: #fff;
   border-radius: 6px;
   padding: 5px 10px;
-  font-size: 13px;
+  font-size: 17px;
   cursor: pointer;
 }
 
 #btn-back:hover { background: #f1f2f4; }
 
 #region-title { color: var(--muted); font-weight: 600; }
-#region-weather { color: var(--muted); font-size: 12px; cursor: help; }
+#region-weather { color: var(--muted); font-size: 16px; cursor: help; }
 
 #filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 14px;
-  font-size: 14px;
+  font-size: 18px;
 }
 
 #hint {
@@ -137,7 +141,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 6px 14px;
-  font-size: 12px;
+  font-size: 16px;
   color: var(--muted);
   z-index: 999;
   pointer-events: none;
@@ -170,12 +174,18 @@ body {
   width: 320px;
   max-height: calc(100% - 28px);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   background: var(--panel-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   padding: 16px;
   z-index: 1002;
+  /* 갑자기 나타나고 사라지는 대신, 오른쪽에서 슬라이드로 들어오고 나가게 */
+  transform: translateX(0);
+  transition: transform 0.28s ease, opacity 0.22s ease;
 }
 
 /* 선택된 권역의 낚시포인트 목록 (좌측 패널) */
@@ -186,6 +196,11 @@ body {
   width: 280px;
   max-height: calc(100% - 28px);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* 지도(Leaflet) 위에 겹쳐 있는 패널이라, 손가락으로 세로 스크롤할 때 지도 쪽으로
+     제스처가 새거나 브라우저가 스크롤을 가로채지 못하는 문제를 막기 위해 명시적으로 지정합니다. */
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   background: var(--panel-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -204,7 +219,17 @@ body {
   z-index: 1;
 }
 
-#spot-list-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+/* 손가락으로 이 핸들(또는 헤더 전체)을 위아래로 끌면 목록 창 전체 높이가 바뀝니다 (모바일 전용). */
+#spot-list-handle {
+  display: none;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 2px auto 8px;
+}
+
+#spot-list-title { font-weight: 700; font-size: 18px; margin-bottom: 8px; }
 
 #spot-list-chips { display: flex; gap: 6px; }
 
@@ -214,20 +239,21 @@ body {
   color: var(--muted);
   border-radius: 14px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: 16px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .chip.active.chip-sea { background: #eaf2fb; border-color: var(--sea); color: var(--sea); font-weight: 600; }
 .chip.active.chip-freshwater { background: #eaf7ee; border-color: var(--fresh); color: var(--fresh); font-weight: 600; }
+.chip.active.chip-boat { background: #f3ebfe; border-color: var(--boat); color: var(--boat); font-weight: 600; }
 .chip:not(.active) { opacity: 0.6; }
 
 #spot-list-body { padding: 4px 0 6px; }
 
 .spot-group-title {
   margin: 10px 16px 2px;
-  font-size: 12px;
+  font-size: 16px;
   color: var(--muted);
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -239,16 +265,16 @@ body {
   padding: 10px 16px;
   cursor: pointer;
   border-bottom: 1px solid #f1f2f4;
-  font-size: 13px;
+  font-size: 17px;
 }
 
 .spot-group-items li:hover { background: #f5f7fa; }
 .spot-group-items li.active { background: #eaf2fb; }
 
 .spot-group-items .spot-name { font-weight: 600; }
-.spot-group-items .spot-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.spot-group-items .spot-meta { color: var(--muted); font-size: 16px; margin-top: 2px; }
 
-.spot-list-empty { padding: 16px; color: var(--muted); font-size: 13px; margin: 0; }
+.spot-list-empty { padding: 16px; color: var(--muted); font-size: 17px; margin: 0; }
 
 .water-dot {
   display: inline-block;
@@ -258,7 +284,7 @@ body {
   margin-right: 6px;
 }
 
-#panel.hidden { display: none; }
+#panel.hidden { transform: translateX(120%); opacity: 0; pointer-events: none; }
 
 #panel-close {
   position: absolute;
@@ -266,7 +292,7 @@ body {
   right: 12px;
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 26px;
   cursor: pointer;
   color: var(--muted);
 }
@@ -278,7 +304,7 @@ body {
   background: #f5f7fa;
   border-radius: 6px;
   padding: 5px 10px;
-  font-size: 12px;
+  font-size: 16px;
   cursor: pointer;
   color: var(--text);
 }
@@ -296,7 +322,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 5px 8px;
-  font-size: 12px;
+  font-size: 16px;
 }
 
 #tide-obscode-apply {
@@ -304,15 +330,15 @@ body {
   background: #f5f7fa;
   border-radius: 6px;
   padding: 5px 10px;
-  font-size: 12px;
+  font-size: 16px;
   cursor: pointer;
 }
 
-.tide-hint { font-size: 11px; color: var(--muted); margin: 6px 0 0; }
+.tide-hint { font-size: 15px; color: var(--muted); margin: 6px 0 0; }
 .tide-hint a { color: inherit; }
 
 .tide-raw {
-  font-size: 11px;
+  font-size: 15px;
   background: #f5f7fa;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -322,14 +348,14 @@ body {
   word-break: break-all;
 }
 
-#panel h2 { margin: 0 24px 2px 0; font-size: 17px; }
-#panel-meta { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+#panel h2 { margin: 0 24px 2px 0; font-size: 22px; }
+#panel-meta { margin: 0 0 14px; color: var(--muted); font-size: 17px; }
 #panel section { margin-bottom: 16px; }
-#panel h3 { font-size: 13px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+#panel h3 { font-size: 17px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 
 .badge {
   display: inline-block;
-  font-size: 11px;
+  font-size: 15px;
   background: #eef1f4;
   color: var(--muted);
   padding: 2px 6px;
@@ -339,10 +365,55 @@ body {
 
 .coming-soon { opacity: 0.7; border-top: 1px dashed var(--border); padding-top: 12px; }
 
-.shop-item { font-size: 13px; padding: 4px 0; border-bottom: 1px solid #f1f2f4; }
+.shop-item { font-size: 17px; padding: 4px 0; border-bottom: 1px solid #f1f2f4; }
 .shop-item:last-child { border-bottom: none; }
+.shop-item a { color: var(--sea); text-decoration: none; }
+.shop-item a:hover { text-decoration: underline; }
 
-.leaflet-popup-content { font-size: 13px; }
+/* 지도 위 편의점/상점 마커 — divIcon 기본 흰 박스/테두리를 없애고, 종류별 색깔의 원형 배지로 표시 */
+.shop-icon { background: transparent; border: none; }
+.shop-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.shop-popup { font-size: 17px; min-width: 140px; }
+.shop-popup-name {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 2px;
+  color: var(--text);
+  text-decoration: none;
+}
+.shop-popup-name:hover { color: var(--sea); text-decoration: underline; }
+.shop-popup-meta { color: var(--muted); font-size: 16px; margin-bottom: 2px; }
+
+/* 낚시포인트 마커 클러스터(여러 개를 뭉쳐 보여주는 원형 배지) — 10개 기준 빨강/파랑 */
+.cluster-icon-wrap { background: transparent; border: none; }
+.cluster-badge {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 17px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.cluster-badge.cluster-small { background: #1d6fb8; } /* 10개 미만 */
+.cluster-badge.cluster-big { background: #d64545; font-size: 18px; } /* 10개 이상 */
+
+.leaflet-popup-content { font-size: 17px; }
 
 /* ---------------------------------------------------------------------------
    낚시포인트 마커 — 구글맵 스타일의 물방울(teardrop) 핀 아이콘
@@ -365,7 +436,7 @@ body {
   left: 0;
   width: 28px;
   text-align: center;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1;
   pointer-events: none;
 }
@@ -385,27 +456,30 @@ body {
 
 .spot-tooltip .tt-name {
   font-weight: 700;
-  font-size: 13px;
-  display: flex;
+  font-size: 17px;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  color: var(--text);
+  text-decoration: none;
 }
+.spot-tooltip .tt-name:hover { color: var(--sea); text-decoration: underline; }
 
 .spot-tooltip .tt-meta {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 15px;
   margin-top: 2px;
 }
 
 .spot-tooltip .tt-species {
-  font-size: 11px;
+  font-size: 15px;
   margin-top: 4px;
   color: var(--text);
 }
 
 .spot-tooltip .tt-badge {
   display: inline-block;
-  font-size: 10px;
+  font-size: 13px;
   background: #eaf7ee;
   color: var(--fresh);
   padding: 1px 6px;
@@ -433,8 +507,8 @@ body {
   line-height: 1.1;
 }
 
-.region-bubble .bubble span { font-size: 13px; font-weight: 700; }
-.region-bubble .bubble small { font-size: 11px; opacity: 0.9; }
+.region-bubble .bubble span { font-size: 17px; font-weight: 700; }
+.region-bubble .bubble small { font-size: 15px; opacity: 0.9; }
 
 /* ---------------------------------------------------------------------------
    모바일 대응 (휴대폰 가로폭 기준)
@@ -443,14 +517,14 @@ body {
    - 상세정보(패널)가 목록(spot-list) 위에 겹쳐 뜨도록 z-index로 순서를 잡아뒀습니다.
 --------------------------------------------------------------------------- */
 @media (max-width: 680px) {
-  #topbar h1 { font-size: 15px; }
+  #topbar h1 { font-size: 19px; }
 
   #topbar {
     padding: 8px 10px;
     gap: 6px;
   }
 
-  #filters { font-size: 13px; gap: 10px; }
+  #filters { font-size: 17px; gap: 10px; }
 
   #search-box { order: 3; flex: 1 1 100%; min-width: 0; }
 
@@ -473,10 +547,15 @@ body {
     box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
   }
 
+  /* 모바일에서는 오른쪽이 아니라 화면 아래쪽에서 슬라이드로 올라오고 내려가게 */
+  #panel { transform: translateY(0); }
+  #panel.hidden { transform: translateY(120%); }
+
   #spot-list { max-height: 42vh; }
   #panel { max-height: 65vh; }
 
-  #spot-list-header { border-radius: 16px 16px 0 0; }
+  #spot-list-header { border-radius: 16px 16px 0 0; touch-action: none; }
+  #spot-list-handle { display: block; }
 
   #hint {
     max-width: calc(100% - 32px);

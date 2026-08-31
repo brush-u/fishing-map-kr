@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>대한민국 낚시지도</title>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+<link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.css" />
+<link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.Default.css" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -22,6 +24,7 @@
     <div id="filters">
       <label><input type="checkbox" id="f-sea" checked /> 바다</label>
       <label><input type="checkbox" id="f-freshwater" checked /> 민물</label>
+      <label><input type="checkbox" id="f-boat" checked /> 🚤 배낚시</label>
       <label class="disabled"><input type="checkbox" id="f-lifestyle" disabled /> 생활낚시 (준비중)</label>
     </div>
   </header>
@@ -32,10 +35,12 @@
 
     <div id="spot-list" class="hidden">
       <div id="spot-list-header">
+        <div id="spot-list-handle" aria-hidden="true"></div>
         <div id="spot-list-title"></div>
         <div id="spot-list-chips">
           <button type="button" class="chip chip-sea active" data-type="sea">🎣 바다</button>
           <button type="button" class="chip chip-freshwater active" data-type="freshwater">🐟 민물</button>
+          <button type="button" class="chip chip-boat active" data-type="boat">🚤 배낚시</button>
         </div>
       </div>
       <div id="spot-list-body"></div>
@@ -56,10 +61,10 @@
         <h3>물때</h3>
         <div id="panel-tide">불러오는 중...</div>
         <div id="tide-obscode-row">
-          <input type="text" id="tide-obscode" placeholder="관측소 코드 (예: DT_0001)" />
+          <input type="text" id="tide-obscode" placeholder="다른 관측소로 보기 (예: DT_0001, 선택사항)" />
           <button id="tide-obscode-apply">조회</button>
         </div>
-        <p class="tide-hint">KHOA 키를 넣었다면 가까운 관측소 코드를 입력해야 실제 값이 나옵니다.
+        <p class="tide-hint">가장 가까운 관측소가 자동으로 선택됩니다. 다른 관측소 값을 보고 싶을 때만 코드를 직접 입력하세요.
           <a href="https://www.data.go.kr/data/15146602/fileData.do" target="_blank" rel="noopener">관측소 목록 보기</a></p>
       </section>
 
@@ -76,6 +81,7 @@
   </div>
 
   <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/leaflet.markercluster/leaflet.markercluster.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

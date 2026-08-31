@@ -10,7 +10,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 const KOREA_VIEW = { center: [36.2, 127.8], zoom: 7 };
-const markerColor = { sea: '#1d6fb8', freshwater: '#2e8b4f' };
+const markerColor = { sea: '#1d6fb8', freshwater: '#2e8b4f', boat: '#8b5cf6' };
 
 // 2013년 KOSTAT 정식명칭 -> 화면에 쓰는 짧은 이름
 // (강원도/전라북도는 2023~2024년에 강원특별자치도/전북특별자치도로 명칭이 바뀌었지만,
@@ -27,19 +27,47 @@ let provinceFeatures = []; // 시/도 경계 폴리곤 원본 feature 목록
 let provinceLayer = null; // L.geoJSON 레이어 (권역 뷰)
 let currentView = { mode: 'region' }; // { mode: 'region' } | { mode: 'detail', name }
 
-const detailMarkerLayer = L.layerGroup();
+// 낚시포인트가 많이 몰려있는 지역은 마커를 하나하나 다 그리는 대신 뭉쳐서(클러스터) 숫자로
+// 보여주고, 줌인하면 자동으로 풀립니다. 10개 이상 뭉쳐있으면 빨간색, 10개 미만이면 파란색.
+const CLUSTER_COUNT_THRESHOLD = 10;
+const detailMarkerLayer = L.markerClusterGroup({
+  showCoverageOnHover: false,
+  spiderfyOnMaxZoom: true,
+  // 기본값(80px)보다 훨씬 작게 잡아서 클러스터가 더 잘게 나뉘게 하고, 살짝만 줌인해도(12 이상)
+  // 아예 클러스터링을 끄고 낱개 마커를 바로 보여줘서 — 클릭을 여러 번 안 해도 개별 낚시포인트에
+  // 빨리 도달하도록 합니다.
+  maxClusterRadius: 30,
+  disableClusteringAtZoom: 12,
+  iconCreateFunction: (cluster) => {
+    const count = cluster.getChildCount();
+    const big = count >= CLUSTER_COUNT_THRESHOLD;
+    return L.divIcon({
+      html: `<div class="cluster-badge ${big ? 'cluster-big' : 'cluster-small'}">${count}</div>`,
+      className: 'cluster-icon-wrap',
+      iconSize: L.point(big ? 44 : 36, big ? 44 : 36),
+    });
+  },
+});
 const nearbyLayer = L.layerGroup().addTo(map);
-let detailMarkersByType = { sea: [], freshwater: [] };
+let detailMarkersByType = { sea: [], freshwater: [], boat: [] };
 
 function getActiveTypes() {
   return {
     sea: document.getElementById('f-sea').checked,
     freshwater: document.getElementById('f-freshwater').checked,
+    boat: document.getElementById('f-boat').checked,
   };
 }
 
 function waterTypeOf(feature) {
   return feature.properties.waterType === 'freshwater' ? 'freshwater' : 'sea';
+}
+
+// 배낚시/선상낚시(data/boat_spots.geojson, category:"boat")는 waterType상으로는 "바다"이지만
+// 필터/아이콘/색상은 바다낚시와 별도로 구분해서 보여줍니다.
+function spotCategory(feature) {
+  if (feature.properties.category === 'boat') return 'boat';
+  return waterTypeOf(feature);
 }
 
 function escapeHtml(str) {
@@ -54,7 +82,7 @@ const pinIconCache = {};
 function pinIcon(type) {
   if (pinIconCache[type]) return pinIconCache[type];
   const color = markerColor[type] || '#999';
-  const emoji = type === 'freshwater' ? '🐟' : '🎣';
+  const emoji = type === 'freshwater' ? '🐟' : type === 'boat' ? '🚤' : '🎣';
   const html = `
     <div class="pin-wrap">
       <svg width="28" height="40" viewBox="0 0 28 40" xmlns="http://www.w3.org/2000/svg">
@@ -76,28 +104,46 @@ function pinIcon(type) {
   return icon;
 }
 
+// 구글맵 공개 링크 — API 키 없이도 새 탭에서 그 좌표를 바로 구글맵으로 볼 수 있습니다.
+function googleMapsLink(name, lat, lng) {
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}${name ? `(${encodeURIComponent(name)})` : ''}`;
+}
+
 // 마커에 마우스를 올리면 뜨는 "풍선말"에 이름뿐 아니라 권역/어종/수종 등 상세 정보를 보여줍니다.
 // (클릭하면 열리는 우측 상세 패널과는 별개로, 지도를 훑어볼 때 바로 핵심 정보를 알 수 있게 함)
-function tooltipHtml(p) {
-  const type = waterTypeOf({ properties: p });
-  const typeLabel = type === 'freshwater' ? '민물낚시' : '바다낚시';
+// 이름을 누르면 구글맵으로 연결됩니다 — 풍선말이 interactive:true라야 안의 링크가 클릭됩니다.
+function tooltipHtml(p, lat, lng) {
+  const type = spotCategory({ properties: p });
+  const typeLabel = type === 'freshwater' ? '민물낚시' : type === 'boat' ? '배낚시/선상낚시' : '바다낚시';
   const speciesStr = Array.isArray(p.species) && p.species.length ? p.species.slice(0, 5).join(', ') : '';
   const lifestyleBadge = p.lifestyleFishing ? '<span class="tt-badge">생활낚시</span>' : '';
+  const boatMeta = type === 'boat' && p.boatCount ? `<div class="tt-species">🚤 등록 낚시어선 ${p.boatCount}척</div>` : '';
   return `
     <div class="spot-tooltip">
-      <div class="tt-name">${escapeHtml(p.name)}${lifestyleBadge}</div>
+      <a class="tt-name" href="${googleMapsLink(p.name, lat, lng)}" target="_blank" rel="noopener">${escapeHtml(p.name)}</a>${lifestyleBadge}
       <div class="tt-meta">${typeLabel}${p.region ? ' · ' + escapeHtml(p.region) : ''}</div>
       ${speciesStr ? `<div class="tt-species">🐟 ${escapeHtml(speciesStr)}</div>` : ''}
+      ${boatMeta}
     </div>`;
 }
 
 function makeSpotMarker(feature) {
   const [lng, lat] = feature.geometry.coordinates;
   const p = feature.properties;
-  const type = waterTypeOf(feature);
+  const type = spotCategory(feature);
   const marker = L.marker([lat, lng], { icon: pinIcon(type) });
-  marker.bindTooltip(tooltipHtml(p), { direction: 'top', opacity: 0.97, className: 'spot-tooltip-wrapper' });
-  marker.on('click', () => openPanel(p, lat, lng));
+  // 예전에는 마우스를 올렸을 때만 뜨는 툴팁(bindTooltip)이었는데, 마우스를 떼면 바로 사라져서
+  // 안의 구글맵 링크를 클릭할 수 없었습니다. 클릭하면 열리고 다시 클릭하거나 다른 곳을 클릭할
+  // 때까지 유지되는 팝업(bindPopup)으로 바꿔서 링크를 편하게 클릭할 수 있게 합니다.
+  marker.bindPopup(tooltipHtml(p, lat, lng), {
+    className: 'spot-tooltip-wrapper',
+  });
+  marker.on('click', (e) => {
+    // 마커 클릭이 지도 자체의 클릭으로도 전파되면, 아래 "지점 주변 보기" 지도 클릭 핸들러가
+    // 같이 실행돼서 목록이 그 마커 위치 기준으로 다시 바뀌어버립니다 — 그걸 막습니다.
+    L.DomEvent.stopPropagation(e);
+    openPanel(p, lat, lng);
+  });
   return marker;
 }
 
@@ -184,7 +230,7 @@ function countsByProvince() {
   const active = getActiveTypes();
   const counts = new Map();
   allFeatures.forEach((f) => {
-    if (!active[waterTypeOf(f)]) return;
+    if (!active[spotCategory(f)]) return;
     counts.set(f._provinceName, (counts.get(f._provinceName) || 0) + 1);
   });
   return counts;
@@ -193,12 +239,23 @@ function countsByProvince() {
 function provinceStyle(count) {
   const has = count > 0;
   return {
-    color: '#1d6fb8',
-    weight: 1.3,
+    // 경계선은 데이터(건수)와 무관하게 항상 또렷한 색/두께로 고정해서, 인접한 권역끼리도
+    // 선으로 확실히 구분되게 합니다. (채움 색/투명도만 건수에 따라 달라집니다)
+    color: '#4b5a6b',
+    weight: 1.4,
+    opacity: 0.85,
     fillColor: '#1d6fb8',
     fillOpacity: has ? Math.min(0.12 + count * 0.035, 0.55) : 0.04,
-    opacity: has ? 0.8 : 0.35,
   };
+}
+
+// 권역 상세(드릴다운) 뷰에서 쓰는 시/도 경계 스타일.
+// - 지금 보고 있는 권역(isActive)은 완전히 투명하게 지워서 낚시포인트 마커를 가리지 않게 하고,
+// - 나머지 권역은 아주 옅게만 표시해서, 클릭하면 바로 그 권역으로 넘어갈 수 있다는 걸 은은하게 알려줍니다.
+function detailProvinceStyle(isActive) {
+  return isActive
+    ? { color: '#1d6fb8', weight: 0, fillColor: '#1d6fb8', fillOpacity: 0, opacity: 0 }
+    : { color: '#8a94a3', weight: 1, fillColor: '#8a94a3', fillOpacity: 0.03, opacity: 0.3 };
 }
 
 function rebuildProvinceLayer() {
@@ -215,9 +272,36 @@ function rebuildProvinceLayer() {
         const short = FULL_TO_SHORT[name] || name;
         const count = counts.get(name) || 0;
         layer.bindTooltip(`${short} · ${count}곳`, { sticky: true });
-        layer.on('click', () => enterProvince(name));
-        layer.on('mouseover', () => layer.setStyle({ weight: 2.5, fillOpacity: Math.min((counts.get(name) || 0) * 0.035 + 0.25, 0.7) }));
-        layer.on('mouseout', () => layer.setStyle(provinceStyle(count)));
+        layer.on('click', (e) => {
+          // 권역 폴리곤 클릭은 여기서 확정적으로 처리하므로, 지도 자체의 클릭으로 다시 전파되어
+          // 아래 map.on('click', ...)이 같은 클릭에 대해 또 실행되는 걸 항상 막습니다.
+          L.DomEvent.stopPropagation(e);
+          if (currentView.mode === 'region') {
+            // 전체 권역 화면에서의 클릭은 원래 동작 그대로: 그 권역 전체로 드릴다운.
+            enterProvince(name);
+          } else {
+            // 이미 권역 상세/지점 보기 상태라면, 권역 전체로 점프하지 않고 클릭한 지점 주변만 보여줍니다.
+            showNearbyPointView(e.latlng, POINT_VIEW_RADIUS_KM);
+          }
+        });
+        layer.on('mouseover', () => {
+          // 권역 상세/지점 보기 상태에서는 지금 보고 있는 권역(투명 처리된 폴리곤)은 굳이 강조하지 않고,
+          // 다른 권역만 살짝 강조해서 "클릭하면 주변이 바뀐다"는 힌트를 줍니다.
+          if (currentView.mode !== 'region') {
+            const isActive = currentView.mode === 'detail' && name === currentView.name;
+            if (!isActive) layer.setStyle({ weight: 2, fillOpacity: 0.16, opacity: 0.55 });
+            return;
+          }
+          layer.setStyle({ weight: 2.5, fillOpacity: Math.min((counts.get(name) || 0) * 0.035 + 0.25, 0.7) });
+        });
+        layer.on('mouseout', () => {
+          if (currentView.mode !== 'region') {
+            const isActive = currentView.mode === 'detail' && name === currentView.name;
+            layer.setStyle(detailProvinceStyle(isActive));
+            return;
+          }
+          layer.setStyle(provinceStyle(count));
+        });
       },
     }
   );
@@ -229,6 +313,7 @@ function showRegionView() {
   currentView = { mode: 'region' };
   map.removeLayer(detailMarkerLayer);
   detailMarkerLayer.clearLayers();
+  nearbyLayer.clearLayers();
   rebuildProvinceLayer();
   map.setView(KOREA_VIEW.center, KOREA_VIEW.zoom);
   document.getElementById('region-nav').classList.add('hidden');
@@ -256,44 +341,113 @@ function enterProvince(name) {
   const provinceFeature = provinceFeatures.find((pf) => pf.properties.name === name);
   if (!provinceFeature) return;
 
-  currentView = { mode: 'detail', name };
+  const short = FULL_TO_SHORT[name] || name;
+  currentView = { mode: 'detail', name, label: short };
   currentRegionFeatures = features;
   currentFeatureMarker = new Map();
-  if (provinceLayer) map.removeLayer(provinceLayer);
+
+  // 권역 경계 레이어는 지도에서 완전히 없애지 않고 계속 띄워둡니다.
+  // 대신 지금 보고 있는 권역은 투명하게, 나머지 권역은 옅게 스타일만 바꿔서
+  // 상세(드릴다운) 화면에서도 다른 권역을 바로 클릭해서 이동할 수 있게 합니다.
+  if (provinceLayer) {
+    if (!map.hasLayer(provinceLayer)) provinceLayer.addTo(map);
+    provinceLayer.eachLayer((layer) => {
+      layer.setStyle(detailProvinceStyle(layer.feature.properties.name === name));
+    });
+    provinceLayer.bringToBack();
+  }
   detailMarkerLayer.clearLayers();
-  detailMarkersByType = { sea: [], freshwater: [] };
+  detailMarkersByType = { sea: [], freshwater: [], boat: [] };
+  nearbyLayer.clearLayers(); // 이전에 "지점 주변 보기"에서 표시했던 편의점 마커가 남아있지 않도록 정리
 
   const active = getActiveTypes();
   features.forEach((f) => {
     const marker = makeSpotMarker(f);
     currentFeatureMarker.set(f, marker);
-    detailMarkersByType[waterTypeOf(f)].push(marker);
-    if (active[waterTypeOf(f)]) marker.addTo(detailMarkerLayer);
+    detailMarkersByType[spotCategory(f)].push(marker);
+    if (active[spotCategory(f)]) marker.addTo(detailMarkerLayer);
   });
   detailMarkerLayer.addTo(map);
 
   const bounds = L.geoJSON(provinceFeature).getBounds();
   map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
 
-  const short = FULL_TO_SHORT[name] || name;
   document.getElementById('region-nav').classList.remove('hidden');
   document.getElementById('region-title').textContent = `${short} · 낚시포인트 ${features.length}곳`;
   document.getElementById('hint').classList.add('hidden');
 
+  resetSpotListSheetHeight();
   renderSpotList(short);
-  loadRegionWeather(provinceFeature);
+  const [wLng, wLat] = bboxCenterOf(provinceFeature.geometry);
+  loadRegionWeather({ lat: wLat, lng: wLng });
 }
 
+// 지도를 클릭했을 때 "그 지점 주변"만 보여줄 기본 반경(km). 값만 바꾸면 전체 동작에 바로 적용됩니다.
+const POINT_VIEW_RADIUS_KM = 15;
+
+// 이미 권역 상세(또는 지점 보기) 상태에서 지도의 다른 곳(시/도 경계가 없는 바다 위 등 포함)을
+// 클릭하면, 전체 권역으로 이동하는 대신 클릭한 지점을 중심으로 반경 내 낚시터만 다시 보여줍니다.
+function showNearbyPointView(latlng, radiusKm) {
+  const center = [latlng.lng, latlng.lat]; // haversineKm은 [lng, lat] 순서
+  const features = allFeatures.filter((f) => haversineKm(center, f.geometry.coordinates) <= radiusKm);
+  const label = `선택 지점 주변 (반경 ${radiusKm}km)`;
+
+  currentView = { mode: 'point', lat: latlng.lat, lng: latlng.lng, radiusKm, label };
+  currentRegionFeatures = features;
+  currentFeatureMarker = new Map();
+
+  // 특정 권역에 "들어가 있는" 상태가 아니므로, 모든 시/도 경계를 똑같이 옅은 스타일로 둡니다.
+  if (provinceLayer) {
+    if (!map.hasLayer(provinceLayer)) provinceLayer.addTo(map);
+    provinceLayer.eachLayer((layer) => layer.setStyle(detailProvinceStyle(false)));
+    provinceLayer.bringToBack();
+  }
+  detailMarkerLayer.clearLayers();
+  detailMarkersByType = { sea: [], freshwater: [], boat: [] };
+
+  const active = getActiveTypes();
+  features.forEach((f) => {
+    const marker = makeSpotMarker(f);
+    currentFeatureMarker.set(f, marker);
+    detailMarkersByType[spotCategory(f)].push(marker);
+    if (active[spotCategory(f)]) marker.addTo(detailMarkerLayer);
+  });
+  detailMarkerLayer.addTo(map);
+
+  // 클릭할 때마다 지도를 강제로 확대/축소해서 다시 맞추면 화면이 계속 튀는 느낌이 들어서
+  // (사용자가 확대해둔 상태에서 클릭하면 갑자기 줄어들고, 축소해둔 상태에서 클릭하면 갑자기
+  // 커지는 문제) — 클릭한 지점은 이미 현재 화면 안에 보이는 곳이므로, 지도 위치/줌은 그대로
+  // 두고 목록/마커만 갱신합니다.
+
+  document.getElementById('region-nav').classList.remove('hidden');
+  document.getElementById('region-title').textContent = `${label} · 낚시포인트 ${features.length}곳`;
+  document.getElementById('hint').classList.add('hidden');
+
+  resetSpotListSheetHeight();
+  renderSpotList(label);
+  loadRegionWeather({ lat: latlng.lat, lng: latlng.lng });
+  // 클릭한 지점 주변의 편의점/상점도 같이 조회해서 지도에 표시합니다 (개별 낚시터를 클릭하지 않아도).
+  renderNearbyShopMarkers(latlng.lat, latlng.lng);
+}
+
+// 지도를 클릭했을 때의 동작 — 이미 권역 상세/지점 보기 상태라면 "전체 권역으로 점프"하지 않고
+// 클릭한 지점 주변만 다시 보여줍니다. (시/도 경계 폴리곤 위 클릭은 위 onEachFeature의 click에서
+// 먼저 처리되고 stopPropagation되므로, 여기는 경계가 없는 바다 등 나머지 영역을 클릭했을 때만 실행됩니다)
+map.on('click', (e) => {
+  if (currentView.mode === 'region') return;
+  showNearbyPointView(e.latlng, POINT_VIEW_RADIUS_KM);
+});
+
 // 기상청 단기예보는 5km 격자 단위(사실상 지역 단위) 정보라 낚시터 하나하나가 아니라
-// "이 권역은 지금 대략 이런 날씨"로 봐도 무방합니다. 권역의 대표지점(경계 바운딩박스 중심) 기준으로
-// 한 번만 조회해서 상단 권역 타이틀 옆에 배지로 보여줍니다.
-function loadRegionWeather(provinceFeature) {
+// "이 주변은 지금 대략 이런 날씨"로 봐도 무방합니다. 대표지점 기준으로 한 번만 조회해서
+// 상단 타이틀 옆에 배지로 보여줍니다.
+function loadRegionWeather(point) {
   const el = document.getElementById('region-weather');
-  if (!provinceFeature) {
+  if (!point) {
     el.textContent = '';
     return;
   }
-  const [lng, lat] = bboxCenterOf(provinceFeature.geometry);
+  const { lat, lng } = point;
   el.textContent = '· 날씨 불러오는 중...';
   fetch(`/api/weather?lat=${lat}&lng=${lng}`)
     .then((r) => r.json())
@@ -321,7 +475,7 @@ document.getElementById('btn-back').addEventListener('click', showRegionView);
 // (17개 시/도 전체를 기준으로 드릴다운 시 도달하는 최소 줌 레벨이 8이어서, 7 이하를 "축소됨"으로 판단)
 const AUTO_COLLAPSE_ZOOM = KOREA_VIEW.zoom;
 map.on('zoomend', () => {
-  if (currentView.mode === 'detail' && map.getZoom() <= AUTO_COLLAPSE_ZOOM) {
+  if (currentView.mode !== 'region' && map.getZoom() <= AUTO_COLLAPSE_ZOOM) {
     showRegionView();
   }
 });
@@ -332,6 +486,7 @@ map.on('zoomend', () => {
 const WATER_GROUP_META = {
   sea: { label: '🎣 바다낚시' },
   freshwater: { label: '🐟 민물낚시' },
+  boat: { label: '🚤 배낚시/선상낚시' },
 };
 
 // 좌측 목록을 바다/민물 두 그룹으로 나눠 보여줍니다. 상단 체크박스(#f-sea/#f-freshwater)와
@@ -342,7 +497,7 @@ function renderSpotList(regionShortName) {
   const bodyEl = document.getElementById('spot-list-body');
   const active = getActiveTypes();
 
-  const visibleFeatures = currentRegionFeatures.filter((f) => active[waterTypeOf(f)]);
+  const visibleFeatures = currentRegionFeatures.filter((f) => active[spotCategory(f)]);
 
   titleEl.textContent = `${regionShortName} 낚시터 (${visibleFeatures.length}곳)`;
   bodyEl.innerHTML = '';
@@ -357,10 +512,10 @@ function renderSpotList(regionShortName) {
     return;
   }
 
-  const groups = { sea: [], freshwater: [] };
-  visibleFeatures.forEach((f) => groups[waterTypeOf(f)].push(f));
+  const groups = { sea: [], freshwater: [], boat: [] };
+  visibleFeatures.forEach((f) => groups[spotCategory(f)].push(f));
 
-  ['sea', 'freshwater'].forEach((type) => {
+  ['sea', 'freshwater', 'boat'].forEach((type) => {
     const items = groups[type];
     if (items.length === 0) return;
 
@@ -377,7 +532,7 @@ function renderSpotList(regionShortName) {
     items.forEach((f) => {
       const p = f.properties;
       const li = document.createElement('li');
-      const dotColor = markerColor[waterTypeOf(f)];
+      const dotColor = markerColor[spotCategory(f)];
       li.innerHTML =
         `<div class="spot-name"><span class="water-dot" style="background:${dotColor}"></span>${escapeHtml(p.name)}</div>` +
         `<div class="spot-meta">${escapeHtml(p.region || '')}${p.species?.length ? ' · ' + escapeHtml(p.species.slice(0, 3).join(', ')) : ''}</div>`;
@@ -392,13 +547,130 @@ function renderSpotList(regionShortName) {
   listEl.classList.remove('hidden');
 }
 
+// ---------------------------------------------------------------------------
+// 모바일 바텀시트: 목록 창 헤더를 손가락으로 위아래로 끌면 목록 안의 데이터 스크롤과는
+// 별개로, 창 전체의 높이(=얼마나 펼쳐 보이는지)가 바뀝니다.
+// - 헤더(제목/칩 버튼이 있는 줄) 영역에서만 드래그를 인식합니다 — 목록 본문(#spot-list-body)의
+//   터치는 그대로 일반 스크롤로 남겨둡니다.
+// - 충분히 움직이기 전까지는 그냥 "탭"으로 보고 아무것도 안 해서, 칩 버튼 클릭이 평소처럼 동작합니다.
+// - 손을 떼면 접힘/기본/펼침 세 지점 중 가장 가까운 높이로 스냅됩니다.
+// ---------------------------------------------------------------------------
+const SHEET_BREAKPOINTS_VH = { collapsed: 11, default: 42, expanded: 82 };
+
+function isMobileSheetLayout() {
+  return window.matchMedia('(max-width: 680px)').matches;
+}
+
+function resetSpotListSheetHeight() {
+  const listEl = document.getElementById('spot-list');
+  if (listEl) listEl.style.maxHeight = '';
+}
+
+function setupSpotListSheetDrag() {
+  const sheet = document.getElementById('spot-list');
+  const handle = document.getElementById('spot-list-header');
+  if (!sheet || !handle) return;
+
+  const vh = (v) => window.innerHeight * (v / 100);
+  const DRAG_THRESHOLD_PX = 8;
+
+  let dragging = false;
+  let movedEnough = false;
+  let startY = 0;
+  let startHeight = 0;
+  let draggedHeight = 0; // 지금까지 끌어서 "의도한" 높이 — 목록이 비어있어 실제 렌더링 높이가
+                         // max-height보다 작을 수 있으므로, 스냅 판정은 실제 렌더링 높이가 아니라
+                         // 이 값(의도한 높이) 기준으로 합니다.
+
+  function clampHeight(h) {
+    return Math.max(vh(SHEET_BREAKPOINTS_VH.collapsed), Math.min(vh(SHEET_BREAKPOINTS_VH.expanded), h));
+  }
+
+  function onStart(clientY) {
+    if (!isMobileSheetLayout()) return;
+    dragging = true;
+    movedEnough = false;
+    startY = clientY;
+    // 시작 높이는 "지금 펼쳐진 정도"를 기준으로 잡아야 하므로, 목록이 비어서 실제 렌더링 높이가
+    // 작더라도 직전에 설정해둔 max-height(없으면 기본 42vh)를 기준으로 삼습니다.
+    const inlineMax = parseFloat(sheet.style.maxHeight);
+    startHeight = Number.isFinite(inlineMax) ? inlineMax : vh(SHEET_BREAKPOINTS_VH.default);
+    draggedHeight = startHeight;
+    sheet.style.transition = 'none';
+  }
+
+  function onMove(clientY, evt) {
+    if (!dragging) return;
+    const dy = startY - clientY; // 위로 끌면 +(커짐), 아래로 끌면 -(작아짐)
+    if (!movedEnough && Math.abs(dy) > DRAG_THRESHOLD_PX) movedEnough = true;
+    if (!movedEnough) return;
+    if (evt && evt.cancelable) evt.preventDefault();
+    draggedHeight = clampHeight(startHeight + dy);
+    sheet.style.maxHeight = `${draggedHeight}px`;
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = 'max-height 0.2s ease';
+    if (!movedEnough) {
+      // 실제로는 거의 움직이지 않은 "탭"이었으므로 아무것도 바꾸지 않습니다.
+      return;
+    }
+    const points = [
+      vh(SHEET_BREAKPOINTS_VH.collapsed),
+      vh(SHEET_BREAKPOINTS_VH.default),
+      vh(SHEET_BREAKPOINTS_VH.expanded),
+    ];
+    let nearest = points[0];
+    let bestDiff = Infinity;
+    points.forEach((p) => {
+      const diff = Math.abs(draggedHeight - p);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        nearest = p;
+      }
+    });
+    sheet.style.maxHeight = `${nearest}px`;
+  }
+
+  handle.addEventListener('touchstart', (e) => onStart(e.touches[0].clientY), { passive: true });
+  handle.addEventListener('touchmove', (e) => onMove(e.touches[0].clientY, e), { passive: false });
+  handle.addEventListener('touchend', onEnd);
+  handle.addEventListener('touchcancel', onEnd);
+
+  // 마우스(창 폭을 줄여서 모바일 레이아웃을 흉내 낼 때도 같은 방식으로 테스트할 수 있도록)
+  handle.addEventListener('mousedown', (e) => {
+    onStart(e.clientY);
+    const onMouseMove = (ev) => onMove(ev.clientY, ev);
+    const onMouseUp = () => {
+      onEnd();
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+}
+setupSpotListSheetDrag();
+
+// 마커가 클러스터(여러 개를 뭉친 원형 아이콘) 안에 숨어있을 수도 있으므로, 목록에서 낚시터를
+// 선택했을 때 필요하면 자동으로 줌인해서 그 마커가 실제로 보이게 만든 다음 풍선말을 엽니다.
+function focusMarkerOnMap(marker, lat, lng) {
+  if (typeof detailMarkerLayer.zoomToShowLayer === 'function') {
+    detailMarkerLayer.zoomToShowLayer(marker, () => marker.openTooltip());
+  } else {
+    map.setView([lat, lng], Math.max(map.getZoom(), 13), { animate: true });
+    marker.openTooltip();
+  }
+}
+
 function selectSpotFromList(feature, li) {
   const marker = currentFeatureMarker.get(feature);
   if (!marker) return;
   const [lng, lat] = feature.geometry.coordinates;
 
-  map.setView([lat, lng], Math.max(map.getZoom(), 13), { animate: true });
-  marker.openTooltip();
+  focusMarkerOnMap(marker, lat, lng);
 
   if (activeListItemEl) activeListItemEl.classList.remove('active');
   li.classList.add('active');
@@ -417,8 +689,10 @@ function syncFilterChips() {
   const active = getActiveTypes();
   const seaChip = document.querySelector('.chip-sea');
   const freshChip = document.querySelector('.chip-freshwater');
+  const boatChip = document.querySelector('.chip-boat');
   if (seaChip) seaChip.classList.toggle('active', active.sea);
   if (freshChip) freshChip.classList.toggle('active', active.freshwater);
+  if (boatChip) boatChip.classList.toggle('active', active.boat);
 }
 
 function applyFilters() {
@@ -428,7 +702,7 @@ function applyFilters() {
     return;
   }
   const active = getActiveTypes();
-  ['sea', 'freshwater'].forEach((type) => {
+  ['sea', 'freshwater', 'boat'].forEach((type) => {
     detailMarkersByType[type].forEach((m) => {
       if (active[type]) {
         if (!detailMarkerLayer.hasLayer(m)) m.addTo(detailMarkerLayer);
@@ -437,17 +711,17 @@ function applyFilters() {
       }
     });
   });
-  const short = FULL_TO_SHORT[currentView.name] || currentView.name;
-  renderSpotList(short);
+  renderSpotList(currentView.label);
 }
 
 document.getElementById('f-sea').addEventListener('change', applyFilters);
 document.getElementById('f-freshwater').addEventListener('change', applyFilters);
+document.getElementById('f-boat').addEventListener('change', applyFilters);
 
 document.querySelectorAll('#spot-list-chips .chip').forEach((chip) => {
   chip.addEventListener('click', () => {
     const type = chip.dataset.type;
-    const checkbox = document.getElementById(type === 'sea' ? 'f-sea' : 'f-freshwater');
+    const checkbox = document.getElementById(`f-${type}`);
     checkbox.checked = !checkbox.checked;
     applyFilters();
   });
@@ -478,10 +752,16 @@ let lastObsCode = ''; // 같은 세션에서 편의상 마지막으로 입력한
 function openPanel(props, lat, lng) {
   panel.classList.remove('hidden');
   currentSpot = { lat, lng };
-  document.getElementById('panel-title').textContent = props.name;
+  document.getElementById('panel-title').innerHTML =
+    `${escapeHtml(props.name)} ` +
+    `<a href="${googleMapsLink(props.name, lat, lng)}" target="_blank" rel="noopener" ` +
+    `style="font-size:0.75em; font-weight:normal; white-space:nowrap;">🗺️ 지도앱에서 보기</a>`;
+  const categoryLabel =
+    props.category === 'boat' ? '배낚시/선상낚시' : props.waterType === 'freshwater' ? '민물' : '바다';
   document.getElementById('panel-meta').textContent =
-    `${props.region || ''} · ${props.waterType === 'freshwater' ? '민물' : '바다'}` +
-    (props.species?.length ? ` · 주요어종: ${props.species.join(', ')}` : '');
+    `${props.region || ''} · ${categoryLabel}` +
+    (props.species?.length ? ` · 주요어종: ${props.species.join(', ')}` : '') +
+    (props.category === 'boat' && props.boatCount ? ` · 🚤 등록 낚시어선 ${props.boatCount}척` : '');
 
   document.getElementById('tide-obscode').value = lastObsCode;
 
@@ -525,7 +805,14 @@ function loadTide(lat, lng, obsCode) {
     .then((r) => r.json())
     .then((t) => {
       const lines = [];
-      if (t.mocked) lines.push('⚠️ 예시 데이터 (KHOA 키/관측소 코드 미설정)');
+      if (t.mocked) lines.push(`⚠️ 예시 데이터 (${escapeHtml(t.message || 'KHOA 키 미설정')})`);
+      if (t.station) {
+        lines.push(
+          `<div class="tide-hint">관측소: ${escapeHtml(t.station.name)} (${escapeHtml(t.station.code)})` +
+            (t.station.distanceKm != null ? ` · 약 ${t.station.distanceKm}km` : '') +
+            '</div>'
+        );
+      }
       if (t.error) lines.push(`⚠️ ${escapeHtml(t.error)}`);
       if (t.apiError) {
         const { code, msg, hint } = t.apiError;
@@ -548,43 +835,108 @@ function loadTide(lat, lng, obsCode) {
     .catch(() => { el.textContent = '물때 정보를 가져오지 못했습니다.'; });
 }
 
+// API 키 없이도 되는 카카오맵 공개 링크 — 새 탭에서 그 지점을 카카오맵으로 바로 볼 수 있습니다.
+function kakaoMapLink(name, lat, lng) {
+  return `https://map.kakao.com/link/map/${encodeURIComponent(name)},${lat},${lng}`;
+}
+
+const SHOP_TYPE_LABEL = {
+  convenience: '편의점',
+  supermarket: '슈퍼마켓',
+  kiosk: '매점',
+  bait: '낚시/미끼',
+  fishing: '낚시용품',
+  fuel: '주유소',
+  unknown: '상점',
+};
+
+// 지도 위 상점 마커 — 종류별로 이모지/색깔을 다르게 줘서 한눈에 구분되게 합니다.
+const SHOP_TYPE_STYLE = {
+  convenience: { emoji: '🏪', color: '#1d6fb8' },
+  supermarket: { emoji: '🛒', color: '#2e8b4f' },
+  kiosk: { emoji: '🏪', color: '#6b7785' },
+  bait: { emoji: '🎣', color: '#c9822e' },
+  fishing: { emoji: '🎣', color: '#c9822e' },
+  fuel: { emoji: '⛽', color: '#e08a1e' },
+  unknown: { emoji: '📍', color: '#6b7785' },
+};
+
+// 주변 편의점/상점을 조회해서 지도(nearbyLayer)에 마커로 표시합니다.
+// - 우측 상세 패널(특정 낚시터 클릭 시)과, 반경 내 낚시터 보기(지도 클릭 시) 양쪽에서 공용으로 씁니다.
+// - 반환값은 실패 시 null, 성공 시 서버 응답(geojson)입니다 — 호출한 쪽에서 텍스트 목록 등 추가로
+//   보여줄 게 있으면 이 값을 이어서 씁니다.
+function renderNearbyShopMarkers(lat, lng) {
+  nearbyLayer.clearLayers();
+  return fetch(`/api/nearby?lat=${lat}&lng=${lng}`)
+    .then((r) => r.json())
+    .then((geojson) => {
+      if (geojson.error || !geojson.features?.length) return geojson;
+      geojson.features.forEach((f) => {
+        const [flng, flat] = f.geometry.coordinates;
+        const name = f.properties.name;
+        const typeLabel = SHOP_TYPE_LABEL[f.properties.shop] || f.properties.shop;
+        const shopStyle = SHOP_TYPE_STYLE[f.properties.shop] || SHOP_TYPE_STYLE.unknown;
+        const typeLabelHtml = `<span style="color:${shopStyle.color};font-weight:700;">${escapeHtml(typeLabel)}</span>`;
+        const distText = f.properties.distanceM != null ? `${f.properties.distanceM}m` : '';
+        const popupHtml = `
+          <div class="shop-popup">
+            <a class="shop-popup-name" href="${kakaoMapLink(name, flat, flng)}" target="_blank" rel="noopener">${shopStyle.emoji} ${escapeHtml(name)}</a>
+            <div class="shop-popup-meta">${typeLabelHtml}${distText ? ' · ' + distText : ''}</div>
+          </div>`;
+        // 클릭하면 열리고, 다시 클릭하거나 다른 곳을 클릭할 때까지 유지되는 기본 팝업 동작을 그대로 씁니다
+        // (예전엔 mouseover/mouseout으로 강제로 호버 방식처럼 만들어서 안의 링크를 클릭할 수 없었습니다).
+        const shopMarker = L.marker([flat, flng], {
+          icon: L.divIcon({
+            className: 'shop-icon',
+            html: `<div class="shop-icon-badge" style="background:${shopStyle.color}">${shopStyle.emoji}</div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+          }),
+        })
+          .bindPopup(popupHtml)
+          .addTo(nearbyLayer);
+      });
+      return geojson;
+    })
+    .catch(() => null);
+}
+
 function loadNearby(lat, lng) {
   const el = document.getElementById('panel-nearby');
   el.textContent = '불러오는 중...';
-  nearbyLayer.clearLayers();
-  fetch(`/api/nearby?lat=${lat}&lng=${lng}`)
-    .then((r) => r.json())
-    .then((geojson) => {
-      if (geojson.error) {
-        el.textContent = `⚠️ ${geojson.error}`;
-        return;
-      }
-      const radiusKm = geojson.radiusUsed ? (geojson.radiusUsed / 1000).toFixed(geojson.radiusUsed % 1000 ? 1 : 0) : null;
-      const providerNote = geojson.provider === 'overpass'
-        ? '<div class="tide-hint">OpenStreetMap 기반이라 농어촌·섬 지역은 등록이 안 되어 있을 수 있어요. (더 정확한 검색을 원하면 카카오 로컬 API 키를 추가할 수 있습니다 — README 참고)</div>'
-        : '';
-      if (!geojson.features?.length) {
-        el.innerHTML = `<div>반경 ${radiusKm}km 내에 편의점/상점 정보가 없습니다.</div>${providerNote}`;
-        return;
-      }
-      el.innerHTML =
-        geojson.features
-          .slice(0, 15)
-          .map((f) => {
-            const distText = f.properties.distanceM != null ? ` · ${f.properties.distanceM}m` : '';
-            return `<div class="shop-item">🏪 ${escapeHtml(f.properties.name)} (${escapeHtml(f.properties.shop)})${distText}</div>`;
-          })
-          .join('') + providerNote;
-      geojson.features.forEach((f) => {
-        const [flng, flat] = f.geometry.coordinates;
-        L.marker([flat, flng], {
-          icon: L.divIcon({ className: 'shop-icon', html: '🏪', iconSize: [18, 18] }),
+  renderNearbyShopMarkers(lat, lng).then((geojson) => {
+    if (!geojson) {
+      el.textContent = '주변 상점 정보를 가져오지 못했습니다.';
+      return;
+    }
+    if (geojson.error) {
+      el.textContent = `⚠️ ${geojson.error}`;
+      return;
+    }
+    const radiusKm = geojson.radiusUsed ? (geojson.radiusUsed / 1000).toFixed(geojson.radiusUsed % 1000 ? 1 : 0) : null;
+    const providerNote = geojson.provider === 'overpass'
+      ? '<div class="tide-hint">OpenStreetMap 기반이라 농어촌·섬 지역은 등록이 안 되어 있을 수 있어요. (더 정확한 검색을 원하면 카카오 로컬 API 키를 추가할 수 있습니다 — README 참고)</div>'
+      : '';
+    if (!geojson.features?.length) {
+      el.innerHTML = `<div>반경 ${radiusKm}km 내에 편의점/상점 정보가 없습니다.</div>${providerNote}`;
+      return;
+    }
+    el.innerHTML =
+      geojson.features
+        .slice(0, 15)
+        .map((f) => {
+          const [flng, flat] = f.geometry.coordinates;
+          const distText = f.properties.distanceM != null ? ` · ${f.properties.distanceM}m` : '';
+          const typeLabel = SHOP_TYPE_LABEL[f.properties.shop] || f.properties.shop;
+          const shopStyle = SHOP_TYPE_STYLE[f.properties.shop] || SHOP_TYPE_STYLE.unknown;
+          const typeLabelHtml = `<span style="color:${shopStyle.color};font-weight:700;">${escapeHtml(typeLabel)}</span>`;
+          return (
+            `<div class="shop-item">${shopStyle.emoji} <a href="${kakaoMapLink(f.properties.name, flat, flng)}" target="_blank" rel="noopener">${escapeHtml(f.properties.name)}</a>` +
+            ` (${typeLabelHtml})${distText}</div>`
+          );
         })
-          .bindTooltip(f.properties.name)
-          .addTo(nearbyLayer);
-      });
-    })
-    .catch(() => { el.textContent = '주변 상점 정보를 가져오지 못했습니다.'; });
+        .join('') + providerNote;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -625,8 +977,8 @@ function renderSearchResults(matches) {
 
   matches.forEach((f) => {
     const p = f.properties;
-    const type = waterTypeOf(f);
-    const icon = type === 'freshwater' ? '🐟' : '🎣';
+    const type = spotCategory(f);
+    const icon = type === 'freshwater' ? '🐟' : type === 'boat' ? '🚤' : '🎣';
     const div = document.createElement('div');
     div.className = 'search-result-item';
     div.innerHTML =
@@ -640,8 +992,8 @@ function renderSearchResults(matches) {
 
 // 검색으로 선택한 낚시터가 속한 권역으로 이동(필요시)하고, 목록 항목과 지도 마커를 모두 포커싱합니다.
 function goToSearchResult(feature) {
-  const type = waterTypeOf(feature);
-  const checkbox = document.getElementById(type === 'freshwater' ? 'f-freshwater' : 'f-sea');
+  const type = spotCategory(feature);
+  const checkbox = document.getElementById(`f-${type}`);
   if (!checkbox.checked) checkbox.checked = true; // 필터 때문에 안 보이는 상태였다면 켜줌
 
   const province = feature._provinceName;
@@ -658,8 +1010,7 @@ function goToSearchResult(feature) {
     const marker = currentFeatureMarker.get(feature);
     if (marker) {
       const [lng, lat] = feature.geometry.coordinates;
-      map.setView([lat, lng], Math.max(map.getZoom(), 13), { animate: true });
-      marker.openTooltip();
+      focusMarkerOnMap(marker, lat, lng);
       openPanel(feature.properties, lat, lng);
     }
   }
