@@ -396,7 +396,6 @@ app.get('/api/tide', async (req, res) => {
         rawResponsePreview: text.slice(0, 1500),
       });
     }
-<<<<<<< HEAD
 
     const header = data?.response?.header;
     if (header && header.resultCode && header.resultCode !== '00') {
@@ -431,9 +430,6 @@ app.get('/api/tide', async (req, res) => {
       lowTide: lowTide.length ? lowTide : undefined,
       raw: items,
     });
-=======
-    res.json({ mocked: false, obsCode, station, date, raw: data });
->>>>>>> 07ecebcbcd683b0309229da9e2b6fd126dc3ab7d
   } catch (err) {
     console.error(err);
     res.status(502).json({ error: 'KHOA 조석 API 호출에 실패했습니다.', detail: String(err) });
