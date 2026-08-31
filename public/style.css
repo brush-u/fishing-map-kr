@@ -47,7 +47,7 @@ body {
 }
 
 #topbar h1 {
-  font-size: 21px;
+  font-size: 24px;
   margin: 0;
 }
 
@@ -55,7 +55,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 #region-nav.hidden { display: none; }
@@ -74,7 +74,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 10px;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 #search-input:focus { outline: 2px solid #cfe0f5; border-color: var(--sea); }
@@ -98,34 +98,34 @@ body {
 .search-result-item {
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 17px;
   border-bottom: 1px solid #f1f2f4;
 }
 
 .search-result-item:last-child { border-bottom: none; }
 .search-result-item:hover, .search-result-item.active { background: #f5f7fa; }
 .search-result-name { font-weight: 600; }
-.search-result-meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
-.search-empty { padding: 10px 12px; color: var(--muted); font-size: 14px; }
+.search-result-meta { color: var(--muted); font-size: 15px; margin-top: 2px; }
+.search-empty { padding: 10px 12px; color: var(--muted); font-size: 16px; }
 
 #btn-back {
   border: 1px solid var(--border);
   background: #fff;
   border-radius: 6px;
   padding: 5px 10px;
-  font-size: 15px;
+  font-size: 17px;
   cursor: pointer;
 }
 
 #btn-back:hover { background: #f1f2f4; }
 
 #region-title { color: var(--muted); font-weight: 600; }
-#region-weather { color: var(--muted); font-size: 14px; cursor: help; }
+#region-weather { color: var(--muted); font-size: 16px; cursor: help; }
 
 #filters {
   display: flex;
   gap: 14px;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 #hint {
@@ -137,7 +137,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 6px 14px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--muted);
   z-index: 999;
   pointer-events: none;
@@ -222,7 +222,7 @@ body {
   margin: 2px auto 8px;
 }
 
-#spot-list-title { font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+#spot-list-title { font-weight: 700; font-size: 18px; margin-bottom: 8px; }
 
 #spot-list-chips { display: flex; gap: 6px; }
 
@@ -232,7 +232,7 @@ body {
   color: var(--muted);
   border-radius: 14px;
   padding: 4px 10px;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
@@ -245,7 +245,7 @@ body {
 
 .spot-group-title {
   margin: 10px 16px 2px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--muted);
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -257,16 +257,16 @@ body {
   padding: 10px 16px;
   cursor: pointer;
   border-bottom: 1px solid #f1f2f4;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .spot-group-items li:hover { background: #f5f7fa; }
 .spot-group-items li.active { background: #eaf2fb; }
 
 .spot-group-items .spot-name { font-weight: 600; }
-.spot-group-items .spot-meta { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.spot-group-items .spot-meta { color: var(--muted); font-size: 16px; margin-top: 2px; }
 
-.spot-list-empty { padding: 16px; color: var(--muted); font-size: 15px; margin: 0; }
+.spot-list-empty { padding: 16px; color: var(--muted); font-size: 17px; margin: 0; }
 
 .water-dot {
   display: inline-block;
@@ -284,7 +284,7 @@ body {
   right: 12px;
   background: none;
   border: none;
-  font-size: 23px;
+  font-size: 26px;
   cursor: pointer;
   color: var(--muted);
 }
@@ -296,7 +296,7 @@ body {
   background: #f5f7fa;
   border-radius: 6px;
   padding: 5px 10px;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   color: var(--text);
 }
@@ -314,7 +314,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 5px 8px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 #tide-obscode-apply {
@@ -322,15 +322,15 @@ body {
   background: #f5f7fa;
   border-radius: 6px;
   padding: 5px 10px;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
 }
 
-.tide-hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.tide-hint { font-size: 15px; color: var(--muted); margin: 6px 0 0; }
 .tide-hint a { color: inherit; }
 
 .tide-raw {
-  font-size: 13px;
+  font-size: 15px;
   background: #f5f7fa;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -340,14 +340,14 @@ body {
   word-break: break-all;
 }
 
-#panel h2 { margin: 0 24px 2px 0; font-size: 20px; }
-#panel-meta { margin: 0 0 14px; color: var(--muted); font-size: 15px; }
+#panel h2 { margin: 0 24px 2px 0; font-size: 22px; }
+#panel-meta { margin: 0 0 14px; color: var(--muted); font-size: 17px; }
 #panel section { margin-bottom: 16px; }
-#panel h3 { font-size: 15px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+#panel h3 { font-size: 17px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 
 .badge {
   display: inline-block;
-  font-size: 13px;
+  font-size: 15px;
   background: #eef1f4;
   color: var(--muted);
   padding: 2px 6px;
@@ -357,7 +357,7 @@ body {
 
 .coming-soon { opacity: 0.7; border-top: 1px dashed var(--border); padding-top: 12px; }
 
-.shop-item { font-size: 15px; padding: 4px 0; border-bottom: 1px solid #f1f2f4; }
+.shop-item { font-size: 17px; padding: 4px 0; border-bottom: 1px solid #f1f2f4; }
 .shop-item:last-child { border-bottom: none; }
 .shop-item a { color: var(--sea); text-decoration: none; }
 .shop-item a:hover { text-decoration: underline; }
@@ -371,15 +371,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 20px;
   border: 2px solid #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
-.shop-popup { font-size: 15px; min-width: 140px; }
+.shop-popup { font-size: 17px; min-width: 140px; }
 .shop-popup-name { font-weight: 700; margin-bottom: 2px; }
-.shop-popup-meta { color: var(--muted); font-size: 14px; margin-bottom: 6px; }
-.shop-popup-link { color: var(--sea); font-size: 14px; text-decoration: none; font-weight: 600; }
+.shop-popup-meta { color: var(--muted); font-size: 16px; margin-bottom: 6px; }
+.shop-popup-link { color: var(--sea); font-size: 16px; text-decoration: none; font-weight: 600; }
 .shop-popup-link:hover { text-decoration: underline; }
 
 /* 낚시포인트 마커 클러스터(여러 개를 뭉쳐 보여주는 원형 배지) — 10개 기준 빨강/파랑 */
@@ -393,14 +393,14 @@ body {
   justify-content: center;
   color: #fff;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 17px;
   border: 2px solid #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 .cluster-badge.cluster-small { background: #1d6fb8; } /* 10개 미만 */
-.cluster-badge.cluster-big { background: #d64545; font-size: 16px; } /* 10개 이상 */
+.cluster-badge.cluster-big { background: #d64545; font-size: 18px; } /* 10개 이상 */
 
-.leaflet-popup-content { font-size: 15px; }
+.leaflet-popup-content { font-size: 17px; }
 
 /* ---------------------------------------------------------------------------
    낚시포인트 마커 — 구글맵 스타일의 물방울(teardrop) 핀 아이콘
@@ -423,7 +423,7 @@ body {
   left: 0;
   width: 28px;
   text-align: center;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
   pointer-events: none;
 }
@@ -443,7 +443,7 @@ body {
 
 .spot-tooltip .tt-name {
   font-weight: 700;
-  font-size: 15px;
+  font-size: 17px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -451,19 +451,19 @@ body {
 
 .spot-tooltip .tt-meta {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 15px;
   margin-top: 2px;
 }
 
 .spot-tooltip .tt-species {
-  font-size: 13px;
+  font-size: 15px;
   margin-top: 4px;
   color: var(--text);
 }
 
 .spot-tooltip .tt-badge {
   display: inline-block;
-  font-size: 12px;
+  font-size: 13px;
   background: #eaf7ee;
   color: var(--fresh);
   padding: 1px 6px;
@@ -491,8 +491,8 @@ body {
   line-height: 1.1;
 }
 
-.region-bubble .bubble span { font-size: 15px; font-weight: 700; }
-.region-bubble .bubble small { font-size: 13px; opacity: 0.9; }
+.region-bubble .bubble span { font-size: 17px; font-weight: 700; }
+.region-bubble .bubble small { font-size: 15px; opacity: 0.9; }
 
 /* ---------------------------------------------------------------------------
    모바일 대응 (휴대폰 가로폭 기준)
@@ -501,14 +501,14 @@ body {
    - 상세정보(패널)가 목록(spot-list) 위에 겹쳐 뜨도록 z-index로 순서를 잡아뒀습니다.
 --------------------------------------------------------------------------- */
 @media (max-width: 680px) {
-  #topbar h1 { font-size: 17px; }
+  #topbar h1 { font-size: 19px; }
 
   #topbar {
     padding: 8px 10px;
     gap: 6px;
   }
 
-  #filters { font-size: 15px; gap: 10px; }
+  #filters { font-size: 17px; gap: 10px; }
 
   #search-box { order: 3; flex: 1 1 100%; min-width: 0; }
 
