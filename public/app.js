@@ -33,11 +33,11 @@ const CLUSTER_COUNT_THRESHOLD = 10;
 const detailMarkerLayer = L.markerClusterGroup({
   showCoverageOnHover: false,
   spiderfyOnMaxZoom: true,
-  // 기본값(80px)보다 작게 잡아서 클러스터가 더 잘게 나뉘게 하고, 어느 정도 줌인하면(14 이상)
+  // 기본값(80px)보다 훨씬 작게 잡아서 클러스터가 더 잘게 나뉘게 하고, 살짝만 줌인해도(12 이상)
   // 아예 클러스터링을 끄고 낱개 마커를 바로 보여줘서 — 클릭을 여러 번 안 해도 개별 낚시포인트에
   // 빨리 도달하도록 합니다.
-  maxClusterRadius: 50,
-  disableClusteringAtZoom: 14,
+  maxClusterRadius: 30,
+  disableClusteringAtZoom: 12,
   iconCreateFunction: (cluster) => {
     const count = cluster.getChildCount();
     const big = count >= CLUSTER_COUNT_THRESHOLD;
@@ -843,14 +843,15 @@ function renderNearbyShopMarkers(lat, lng) {
         const [flng, flat] = f.geometry.coordinates;
         const name = f.properties.name;
         const typeLabel = SHOP_TYPE_LABEL[f.properties.shop] || f.properties.shop;
+        const shopStyle = SHOP_TYPE_STYLE[f.properties.shop] || SHOP_TYPE_STYLE.unknown;
+        const typeLabelHtml = `<span style="color:${shopStyle.color};font-weight:700;">${escapeHtml(typeLabel)}</span>`;
         const distText = f.properties.distanceM != null ? `${f.properties.distanceM}m` : '';
         const popupHtml = `
           <div class="shop-popup">
-            <div class="shop-popup-name">🏪 ${escapeHtml(name)}</div>
-            <div class="shop-popup-meta">${escapeHtml(typeLabel)}${distText ? ' · ' + distText : ''}</div>
+            <div class="shop-popup-name">${shopStyle.emoji} ${escapeHtml(name)}</div>
+            <div class="shop-popup-meta">${typeLabelHtml}${distText ? ' · ' + distText : ''}</div>
             <a class="shop-popup-link" href="${kakaoMapLink(name, flat, flng)}" target="_blank" rel="noopener">카카오맵에서 보기 →</a>
           </div>`;
-        const shopStyle = SHOP_TYPE_STYLE[f.properties.shop] || SHOP_TYPE_STYLE.unknown;
         L.marker([flat, flng], {
           icon: L.divIcon({
             className: 'shop-icon',
@@ -895,8 +896,10 @@ function loadNearby(lat, lng) {
           const [flng, flat] = f.geometry.coordinates;
           const distText = f.properties.distanceM != null ? ` · ${f.properties.distanceM}m` : '';
           const typeLabel = SHOP_TYPE_LABEL[f.properties.shop] || f.properties.shop;
+          const shopStyle = SHOP_TYPE_STYLE[f.properties.shop] || SHOP_TYPE_STYLE.unknown;
+          const typeLabelHtml = `<span style="color:${shopStyle.color};font-weight:700;">${escapeHtml(typeLabel)}</span>`;
           return (
-            `<div class="shop-item">🏪 ${escapeHtml(f.properties.name)} (${escapeHtml(typeLabel)})${distText}` +
+            `<div class="shop-item">${shopStyle.emoji} ${escapeHtml(f.properties.name)} (${typeLabelHtml})${distText}` +
             ` · <a href="${kakaoMapLink(f.properties.name, flat, flng)}" target="_blank" rel="noopener">카카오맵</a></div>`
           );
         })
