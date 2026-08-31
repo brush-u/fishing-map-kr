@@ -212,6 +212,16 @@ body {
   z-index: 1;
 }
 
+/* 손가락으로 이 핸들(또는 헤더 전체)을 위아래로 끌면 목록 창 전체 높이가 바뀝니다 (모바일 전용). */
+#spot-list-handle {
+  display: none;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 2px auto 8px;
+}
+
 #spot-list-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
 
 #spot-list-chips { display: flex; gap: 6px; }
@@ -484,7 +494,8 @@ body {
   #spot-list { max-height: 42vh; }
   #panel { max-height: 65vh; }
 
-  #spot-list-header { border-radius: 16px 16px 0 0; }
+  #spot-list-header { border-radius: 16px 16px 0 0; touch-action: none; }
+  #spot-list-handle { display: block; }
 
   #hint {
     max-width: calc(100% - 32px);
