@@ -712,3 +712,4 @@ body {
   /* Leaflet 줌 컨트롤과 맞닿지 않도록 약간 아래로 */
   .leaflet-control-zoom { margin-top: 6px !important; }
 }
+
