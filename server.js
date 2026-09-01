@@ -398,11 +398,14 @@ app.get('/api/tide', async (req, res) => {
     }
 
     const header = data?.response?.header;
-    if (header && header.resultCode && header.resultCode !== '00') {
-      const hint = OPENAPI_ERROR_HINTS[header.resultCode] || null;
+    // resultCode는 스펙상 "00"(2자리, 앞에 0 포함)이라 JSON에서도 항상 문자열로 내려오지만,
+    // 혹시 모를 타입 차이에 안전하게 대응하기 위해 문자열로 변환해서 비교합니다.
+    const resultCode = header?.resultCode != null ? String(header.resultCode).trim() : null;
+    if (header && resultCode && resultCode !== '00') {
+      const hint = OPENAPI_ERROR_HINTS[resultCode] || null;
       return res.status(502).json({
         error: header.resultMsg || 'KHOA 조석 API 오류',
-        apiError: { code: header.resultCode, msg: header.resultMsg || null, hint },
+        apiError: { code: resultCode, msg: header.resultMsg || null, hint },
         obsCode,
         station,
         date,
@@ -417,9 +420,16 @@ app.get('/api/tide', async (req, res) => {
     for (const it of items) {
       const timeStr = (it.predcDt || '').split(' ')[1] || '';
       if (!timeStr) continue;
-      if (it.extrSe === '1' || it.extrSe === '3') highTide.push(timeStr);
-      else if (it.extrSe === '2' || it.extrSe === '4') lowTide.push(timeStr);
+      // ⚠️ data.go.kr의 JSON 응답은 숫자처럼 생긴 값("1","2"...)을 문자열이 아니라 실제 숫자로
+      // 내려주는 경우가 흔합니다(예: extrSe: 2 대신 "2"). 엄격 비교(===)로 문자열만 비교하면
+      // 이 경우 전부 걸러져서 물때 시각이 하나도 안 나오는 버그가 생기므로, 항상 문자열로
+      // 변환해서 비교합니다.
+      const extrSe = it.extrSe != null ? String(it.extrSe).trim() : '';
+      if (extrSe === '1' || extrSe === '3') highTide.push(timeStr);
+      else if (extrSe === '2' || extrSe === '4') lowTide.push(timeStr);
     }
+
+    const totalCount = data?.response?.body?.totalCount;
 
     res.json({
       mocked: false,
@@ -428,6 +438,7 @@ app.get('/api/tide', async (req, res) => {
       date,
       highTide: highTide.length ? highTide : undefined,
       lowTide: lowTide.length ? lowTide : undefined,
+      totalCount: totalCount != null ? Number(totalCount) : undefined,
       raw: items,
     });
   } catch (err) {
