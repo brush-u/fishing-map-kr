@@ -109,9 +109,29 @@ function googleMapsLink(name, lat, lng) {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}${name ? `(${encodeURIComponent(name)})` : ''}`;
 }
 
+// 네이버맵 공개 링크 — API 키 없이도 새 탭에서 그 좌표를 바로 네이버맵으로 볼 수 있습니다.
+function naverMapLink(name, lat, lng) {
+  return `https://map.naver.com/p/search/${encodeURIComponent(name || '낚시포인트')}?c=${lng},${lat},15,0,0,0,dh`;
+}
+
+// 이름 옆에 "구글/네이버/카카오" 중 원하는 지도 앱을 골라서 열 수 있는 작은 링크 3개를
+// 나란히 붙여줍니다. 특정 앱 하나로 고정하지 않고 매번 선택할 수 있게 하기 위함입니다.
+// (kakaoMapLink는 이 파일 아래쪽에 정의돼 있지만, 함수 선언은 호이스팅되므로 여기서 바로 씁니다)
+function mapLinksHtml(name, lat, lng, extraClass) {
+  const cls = `map-links${extraClass ? ' ' + extraClass : ''}`;
+  return (
+    `<span class="${cls}">` +
+    `<a href="${googleMapsLink(name, lat, lng)}" target="_blank" rel="noopener" title="구글맵에서 보기">구글</a>` +
+    `<a href="${naverMapLink(name, lat, lng)}" target="_blank" rel="noopener" title="네이버맵에서 보기">네이버</a>` +
+    `<a href="${kakaoMapLink(name, lat, lng)}" target="_blank" rel="noopener" title="카카오맵에서 보기">카카오</a>` +
+    `</span>`
+  );
+}
+
 // 마커에 마우스를 올리면 뜨는 "풍선말"에 이름뿐 아니라 권역/어종/수종 등 상세 정보를 보여줍니다.
 // (클릭하면 열리는 우측 상세 패널과는 별개로, 지도를 훑어볼 때 바로 핵심 정보를 알 수 있게 함)
-// 이름을 누르면 구글맵으로 연결됩니다 — 풍선말이 interactive:true라야 안의 링크가 클릭됩니다.
+// 이름 옆의 구글/네이버/카카오 중 하나를 누르면 그 지도 앱으로 연결됩니다 — 풍선말이
+// interactive:true라야 안의 링크가 클릭됩니다.
 function tooltipHtml(p, lat, lng) {
   const type = spotCategory({ properties: p });
   const typeLabel = type === 'freshwater' ? '민물낚시' : type === 'boat' ? '배낚시/선상낚시' : '바다낚시';
@@ -120,7 +140,8 @@ function tooltipHtml(p, lat, lng) {
   const boatMeta = type === 'boat' && p.boatCount ? `<div class="tt-species">🚤 등록 낚시어선 ${p.boatCount}척</div>` : '';
   return `
     <div class="spot-tooltip">
-      <a class="tt-name" href="${googleMapsLink(p.name, lat, lng)}" target="_blank" rel="noopener">${escapeHtml(p.name)}</a>${lifestyleBadge}
+      <span class="tt-name">${escapeHtml(p.name)}</span>${lifestyleBadge}
+      ${mapLinksHtml(p.name, lat, lng)}
       <div class="tt-meta">${typeLabel}${p.region ? ' · ' + escapeHtml(p.region) : ''}</div>
       ${speciesStr ? `<div class="tt-species">🐟 ${escapeHtml(speciesStr)}</div>` : ''}
       ${boatMeta}
@@ -132,11 +153,11 @@ function makeSpotMarker(feature) {
   const p = feature.properties;
   const type = spotCategory(feature);
   const marker = L.marker([lat, lng], { icon: pinIcon(type) });
-  // 예전에는 마우스를 올렸을 때만 뜨는 툴팁(bindTooltip)이었는데, 마우스를 떼면 바로 사라져서
-  // 안의 구글맵 링크를 클릭할 수 없었습니다. 클릭하면 열리고 다시 클릭하거나 다른 곳을 클릭할
-  // 때까지 유지되는 팝업(bindPopup)으로 바꿔서 링크를 편하게 클릭할 수 있게 합니다.
-  marker.bindPopup(tooltipHtml(p, lat, lng), {
+  marker.bindTooltip(tooltipHtml(p, lat, lng), {
+    direction: 'top',
+    opacity: 0.97,
     className: 'spot-tooltip-wrapper',
+    interactive: true, // 풍선말 안의 구글맵 링크를 클릭할 수 있게
   });
   marker.on('click', (e) => {
     // 마커 클릭이 지도 자체의 클릭으로도 전파되면, 아래 "지점 주변 보기" 지도 클릭 핸들러가
@@ -324,6 +345,7 @@ function showRegionView() {
   currentFeatureMarker = new Map();
   activeListItemEl = null;
   document.getElementById('spot-list').classList.add('hidden');
+  document.getElementById('spot-list-reopen')?.classList.add('hidden');
   panel.classList.add('hidden');
   document.getElementById('hint').classList.remove('hidden');
 }
@@ -438,35 +460,51 @@ map.on('click', (e) => {
   showNearbyPointView(e.latlng, POINT_VIEW_RADIUS_KM);
 });
 
+// 하늘/강수 상태 문자열을 보고 알아보기 쉬운 이모지 아이콘으로 바꿔줍니다.
+// (날씨 정보를 텍스트만으로 훑어보기 어렵다는 피드백이 있어, 상단 배지/상세패널 양쪽에서 공용으로 씁니다)
+function weatherEmoji(sky, precip) {
+  if (precip && precip !== '없음' && precip !== '-') {
+    if (precip.includes('눈')) return '🌨️';
+    if (precip.includes('비') || precip.includes('소나기')) return '🌧️';
+    return '🌦️';
+  }
+  if (!sky || sky === '-') return '🌤️';
+  if (sky.includes('맑')) return '☀️';
+  if (sky.includes('흐')) return '☁️';
+  if (sky.includes('구름')) return '⛅';
+  return '🌤️';
+}
+
 // 기상청 단기예보는 5km 격자 단위(사실상 지역 단위) 정보라 낚시터 하나하나가 아니라
 // "이 주변은 지금 대략 이런 날씨"로 봐도 무방합니다. 대표지점 기준으로 한 번만 조회해서
-// 상단 타이틀 옆에 배지로 보여줍니다.
+// 상단 타이틀 옆에 눈에 잘 띄는 배지로 보여줍니다.
 function loadRegionWeather(point) {
   const el = document.getElementById('region-weather');
   if (!point) {
-    el.textContent = '';
+    el.innerHTML = '';
     return;
   }
   const { lat, lng } = point;
-  el.textContent = '· 날씨 불러오는 중...';
+  el.innerHTML = '날씨 불러오는 중...';
   fetch(`/api/weather?lat=${lat}&lng=${lng}`)
     .then((r) => r.json())
     .then((w) => {
       if (w.error) {
-        el.textContent = '';
+        el.innerHTML = '';
         return;
       }
       const parts = [];
       if (w.mocked) parts.push('⚠️ 예시데이터');
-      parts.push(w.sky ?? '-');
-      if (w.precipitationType && w.precipitationType !== '없음') parts.push(`강수:${w.precipitationType}`);
+      parts.push(escapeHtml(w.sky ?? '-'));
+      if (w.precipitationType && w.precipitationType !== '없음') parts.push(`강수 ${escapeHtml(w.precipitationType)}`);
       if (w.temperature != null) parts.push(`${w.temperature}℃`);
-      if (w.windSpeed != null) parts.push(`풍속${w.windSpeed}m/s`);
-      if (w.waveHeight) parts.push(`파고${w.waveHeight}m`);
-      el.textContent = `· ${parts.join(' · ')}`;
+      if (w.windSpeed != null) parts.push(`풍속 ${w.windSpeed}m/s`);
+      if (w.waveHeight) parts.push(`파고 ${w.waveHeight}m`);
+      const emoji = weatherEmoji(w.sky, w.precipitationType);
+      el.innerHTML = `<span class="weather-badge-icon">${emoji}</span><span class="weather-badge-text">${parts.join(' · ')}</span>`;
       el.title = '권역 대표지점 기준 날씨입니다. 기상청 격자(5km) 단위 예보라 실제 낚시포인트와 약간 다를 수 있어요.';
     })
-    .catch(() => { el.textContent = ''; });
+    .catch(() => { el.innerHTML = ''; });
 }
 
 document.getElementById('btn-back').addEventListener('click', showRegionView);
@@ -523,7 +561,7 @@ function renderSpotList(regionShortName) {
     section.className = 'spot-group';
 
     const h4 = document.createElement('h4');
-    h4.className = 'spot-group-title';
+    h4.className = `spot-group-title spot-group-title-${type}`;
     h4.textContent = `${WATER_GROUP_META[type].label} (${items.length})`;
     section.appendChild(h4);
 
@@ -549,13 +587,20 @@ function renderSpotList(regionShortName) {
 
 // ---------------------------------------------------------------------------
 // 모바일 바텀시트: 목록 창 헤더를 손가락으로 위아래로 끌면 목록 안의 데이터 스크롤과는
-// 별개로, 창 전체의 높이(=얼마나 펼쳐 보이는지)가 바뀝니다.
+// 별개로, 창 전체의 높이(=얼마나 펼쳐 보이는지)가 바뀝니다. (기존 기능, 그대로 유지)
 // - 헤더(제목/칩 버튼이 있는 줄) 영역에서만 드래그를 인식합니다 — 목록 본문(#spot-list-body)의
 //   터치는 그대로 일반 스크롤로 남겨둡니다.
-// - 충분히 움직이기 전까지는 그냥 "탭"으로 보고 아무것도 안 해서, 칩 버튼 클릭이 평소처럼 동작합니다.
 // - 손을 떼면 접힘/기본/펼침 세 지점 중 가장 가까운 높이로 스냅됩니다.
+// 여기에 두 가지를 추가합니다:
+// 1) 드래그 없이 헤더를 짧게 "탭"만 하면(칩 버튼 위가 아닌 경우) 접힘→기본→펼침 순서로
+//    한 단계씩 순환합니다.
+// 2) 목록 본문이 이미 맨 위로 스크롤된 상태에서 손가락을 더 아래로 그으면(pull-to-close),
+//    목록 창 전체가 화면 아래로 내려가며 닫힙니다 — 화면 아래쪽에 나타나는 작은
+//    "목록 다시 보기" 버튼으로 다시 열 수 있습니다.
 // ---------------------------------------------------------------------------
 const SHEET_BREAKPOINTS_VH = { collapsed: 11, default: 42, expanded: 82 };
+const SHEET_ORDER = ['collapsed', 'default', 'expanded'];
+let sheetState = 'default'; // 탭으로 순환할 때 "지금 몇 단계인지" 기준
 
 function isMobileSheetLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -563,17 +608,49 @@ function isMobileSheetLayout() {
 
 function resetSpotListSheetHeight() {
   const listEl = document.getElementById('spot-list');
-  if (listEl) listEl.style.maxHeight = '';
+  if (listEl) {
+    listEl.style.maxHeight = '';
+    listEl.style.opacity = '';
+    listEl.classList.remove('hidden');
+  }
+  sheetState = 'default';
+  document.getElementById('spot-list-reopen')?.classList.add('hidden');
 }
 
 function setupSpotListSheetDrag() {
   const sheet = document.getElementById('spot-list');
   const handle = document.getElementById('spot-list-header');
+  const body = document.getElementById('spot-list-body');
+  const reopenBtn = document.getElementById('spot-list-reopen');
   if (!sheet || !handle) return;
 
   const vh = (v) => window.innerHeight * (v / 100);
   const DRAG_THRESHOLD_PX = 8;
 
+  function clampHeight(h) {
+    return Math.max(vh(SHEET_BREAKPOINTS_VH.collapsed), Math.min(vh(SHEET_BREAKPOINTS_VH.expanded), h));
+  }
+
+  function nearestBreakpointKey(h) {
+    let nearestKey = SHEET_ORDER[0];
+    let bestDiff = Infinity;
+    SHEET_ORDER.forEach((key) => {
+      const diff = Math.abs(h - vh(SHEET_BREAKPOINTS_VH[key]));
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        nearestKey = key;
+      }
+    });
+    return nearestKey;
+  }
+
+  function snapTo(key) {
+    sheet.style.transition = 'max-height 0.2s ease';
+    sheet.style.maxHeight = `${vh(SHEET_BREAKPOINTS_VH[key])}px`;
+    sheetState = key;
+  }
+
+  // ------- 헤더 드래그 + 탭 순환 -------
   let dragging = false;
   let movedEnough = false;
   let startY = 0;
@@ -581,20 +658,18 @@ function setupSpotListSheetDrag() {
   let draggedHeight = 0; // 지금까지 끌어서 "의도한" 높이 — 목록이 비어있어 실제 렌더링 높이가
                          // max-height보다 작을 수 있으므로, 스냅 판정은 실제 렌더링 높이가 아니라
                          // 이 값(의도한 높이) 기준으로 합니다.
+  let startTarget = null;
 
-  function clampHeight(h) {
-    return Math.max(vh(SHEET_BREAKPOINTS_VH.collapsed), Math.min(vh(SHEET_BREAKPOINTS_VH.expanded), h));
-  }
-
-  function onStart(clientY) {
+  function onStart(clientY, target) {
     if (!isMobileSheetLayout()) return;
     dragging = true;
     movedEnough = false;
     startY = clientY;
+    startTarget = target || null;
     // 시작 높이는 "지금 펼쳐진 정도"를 기준으로 잡아야 하므로, 목록이 비어서 실제 렌더링 높이가
-    // 작더라도 직전에 설정해둔 max-height(없으면 기본 42vh)를 기준으로 삼습니다.
+    // 작더라도 직전에 설정해둔 max-height(없으면 현재 단계)를 기준으로 삼습니다.
     const inlineMax = parseFloat(sheet.style.maxHeight);
-    startHeight = Number.isFinite(inlineMax) ? inlineMax : vh(SHEET_BREAKPOINTS_VH.default);
+    startHeight = Number.isFinite(inlineMax) ? inlineMax : vh(SHEET_BREAKPOINTS_VH[sheetState]);
     draggedHeight = startHeight;
     sheet.style.transition = 'none';
   }
@@ -614,34 +689,26 @@ function setupSpotListSheetDrag() {
     dragging = false;
     sheet.style.transition = 'max-height 0.2s ease';
     if (!movedEnough) {
-      // 실제로는 거의 움직이지 않은 "탭"이었으므로 아무것도 바꾸지 않습니다.
+      // 실제로 끌지 않고 짧게 "탭"만 한 경우입니다.
+      // 칩 버튼(바다/민물/배낚시 필터) 위를 탭한 거라면 그 버튼 자신의 클릭 동작에 맡기고
+      // 아무것도 하지 않습니다. 그 외 헤더 영역(핸들 바/제목 등)이었다면 접힘 → 기본 → 펼침
+      // 순서로 창 크기를 한 단계씩 순환시킵니다.
+      if (startTarget && startTarget.closest && startTarget.closest('.chip')) return;
+      const nextIdx = (SHEET_ORDER.indexOf(sheetState) + 1) % SHEET_ORDER.length;
+      snapTo(SHEET_ORDER[nextIdx]);
       return;
     }
-    const points = [
-      vh(SHEET_BREAKPOINTS_VH.collapsed),
-      vh(SHEET_BREAKPOINTS_VH.default),
-      vh(SHEET_BREAKPOINTS_VH.expanded),
-    ];
-    let nearest = points[0];
-    let bestDiff = Infinity;
-    points.forEach((p) => {
-      const diff = Math.abs(draggedHeight - p);
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        nearest = p;
-      }
-    });
-    sheet.style.maxHeight = `${nearest}px`;
+    snapTo(nearestBreakpointKey(draggedHeight));
   }
 
-  handle.addEventListener('touchstart', (e) => onStart(e.touches[0].clientY), { passive: true });
+  handle.addEventListener('touchstart', (e) => onStart(e.touches[0].clientY, e.target), { passive: true });
   handle.addEventListener('touchmove', (e) => onMove(e.touches[0].clientY, e), { passive: false });
   handle.addEventListener('touchend', onEnd);
   handle.addEventListener('touchcancel', onEnd);
 
   // 마우스(창 폭을 줄여서 모바일 레이아웃을 흉내 낼 때도 같은 방식으로 테스트할 수 있도록)
   handle.addEventListener('mousedown', (e) => {
-    onStart(e.clientY);
+    onStart(e.clientY, e.target);
     const onMouseMove = (ev) => onMove(ev.clientY, ev);
     const onMouseUp = () => {
       onEnd();
@@ -650,6 +717,75 @@ function setupSpotListSheetDrag() {
     };
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+  });
+
+  // ------- 본문 목록: 이미 맨 위로 스크롤된 상태에서 아래로 더 긁으면(pull-to-close)
+  //         창 전체를 닫습니다 -------
+  if (body) {
+    let pulling = false;
+    let pullDecided = null; // null(미정) | 'pull' | 'scroll'
+    let pullStartY = 0;
+    let pullStartHeight = 0;
+
+    function pullStart(clientY) {
+      if (!isMobileSheetLayout()) return;
+      pulling = false;
+      pullDecided = null;
+      pullStartY = clientY;
+      const inlineMax = parseFloat(sheet.style.maxHeight);
+      pullStartHeight = Number.isFinite(inlineMax) ? inlineMax : vh(SHEET_BREAKPOINTS_VH[sheetState]);
+    }
+
+    function pullMove(clientY, evt) {
+      if (!isMobileSheetLayout() || pullDecided === 'scroll') return;
+      const dy = clientY - pullStartY; // 아래로 내리면 +
+      if (!pulling) {
+        if (Math.abs(dy) < DRAG_THRESHOLD_PX) return;
+        // 위로 긁거나(dy<0), 이미 목록이 스크롤되어 맨 위가 아니면 일반 스크롤에 맡깁니다.
+        if (dy < 0 || body.scrollTop > 0) {
+          pullDecided = 'scroll';
+          return;
+        }
+        pulling = true;
+        pullDecided = 'pull';
+        sheet.style.transition = 'none';
+      }
+      if (evt && evt.cancelable) evt.preventDefault();
+      const newHeight = Math.max(0, pullStartHeight - dy);
+      sheet.style.maxHeight = `${newHeight}px`;
+      sheet.style.opacity = String(Math.max(0.3, newHeight / Math.max(1, pullStartHeight)));
+    }
+
+    function pullEnd() {
+      const wasPulling = pulling;
+      pulling = false;
+      pullDecided = null;
+      if (!wasPulling) return;
+      sheet.style.transition = 'max-height 0.2s ease, opacity 0.2s ease';
+      sheet.style.opacity = '';
+      const inlineMax = parseFloat(sheet.style.maxHeight);
+      const collapsedH = vh(SHEET_BREAKPOINTS_VH.collapsed);
+      if (Number.isFinite(inlineMax) && inlineMax < collapsedH * 0.6) {
+        // 접힘 단계보다도 많이 끌어내렸으면 완전히 닫습니다 — "목록 다시 보기" 버튼으로 복구.
+        sheet.classList.add('hidden');
+        sheet.style.maxHeight = '';
+        sheetState = 'default';
+        reopenBtn?.classList.remove('hidden');
+      } else {
+        snapTo('collapsed');
+      }
+    }
+
+    body.addEventListener('touchstart', (e) => pullStart(e.touches[0].clientY), { passive: true });
+    body.addEventListener('touchmove', (e) => pullMove(e.touches[0].clientY, e), { passive: false });
+    body.addEventListener('touchend', pullEnd);
+    body.addEventListener('touchcancel', pullEnd);
+  }
+
+  reopenBtn?.addEventListener('click', () => {
+    sheet.classList.remove('hidden');
+    reopenBtn.classList.add('hidden');
+    snapTo('default');
   });
 }
 setupSpotListSheetDrag();
@@ -753,9 +889,7 @@ function openPanel(props, lat, lng) {
   panel.classList.remove('hidden');
   currentSpot = { lat, lng };
   document.getElementById('panel-title').innerHTML =
-    `${escapeHtml(props.name)} ` +
-    `<a href="${googleMapsLink(props.name, lat, lng)}" target="_blank" rel="noopener" ` +
-    `style="font-size:0.75em; font-weight:normal; white-space:nowrap;">🗺️ 지도앱에서 보기</a>`;
+    `<span class="panel-title-name">${escapeHtml(props.name)}</span>` + mapLinksHtml(props.name, lat, lng, 'map-links-panel');
   const categoryLabel =
     props.category === 'boat' ? '배낚시/선상낚시' : props.waterType === 'freshwater' ? '민물' : '바다';
   document.getElementById('panel-meta').textContent =
@@ -786,12 +920,23 @@ function loadWeather(lat, lng) {
         el.textContent = '날씨 정보를 가져오지 못했습니다.';
         return;
       }
-      const lines = [];
-      if (w.mocked) lines.push('⚠️ 예시 데이터 (KMA_FORECAST_KEY 미설정)');
-      lines.push(`하늘: ${w.sky ?? '-'} / 강수: ${w.precipitationType ?? '-'}`);
-      lines.push(`기온: ${w.temperature ?? '-'}℃ / 풍속: ${w.windSpeed ?? '-'}m/s`);
-      if (w.waveHeight) lines.push(`파고: ${w.waveHeight}m`);
-      el.innerHTML = lines.map((l) => `<div>${l}</div>`).join('');
+      const emoji = weatherEmoji(w.sky, w.precipitationType);
+      const mockedBadge = w.mocked ? '<div class="weather-mocked">⚠️ 예시 데이터 (KMA_FORECAST_KEY 미설정)</div>' : '';
+      const stats = [
+        { label: '강수', value: w.precipitationType ?? '-' },
+        { label: '풍속', value: w.windSpeed != null ? `${w.windSpeed}m/s` : '-' },
+      ];
+      if (w.waveHeight) stats.push({ label: '파고', value: `${w.waveHeight}m` });
+      el.innerHTML =
+        mockedBadge +
+        `<div class="weather-main">
+          <span class="weather-emoji">${emoji}</span>
+          <span class="weather-temp">${w.temperature != null ? `${w.temperature}℃` : '-'}</span>
+          <span class="weather-sky">${escapeHtml(w.sky ?? '-')}</span>
+        </div>` +
+        `<div class="weather-grid">${stats
+          .map((s) => `<div class="weather-stat"><span class="weather-stat-label">${s.label}</span><span class="weather-stat-value">${escapeHtml(String(s.value))}</span></div>`)
+          .join('')}</div>`;
     })
     .catch(() => { el.textContent = '날씨 정보를 가져오지 못했습니다.'; });
 }
@@ -824,12 +969,21 @@ function loadTide(lat, lng, obsCode) {
       }
       if (t.highTide) lines.push(`고조: ${t.highTide.join(', ')}`);
       if (t.lowTide) lines.push(`저조: ${t.lowTide.join(', ')}`);
-      if (t.raw) lines.push(`<pre class="tide-raw">${escapeHtml(JSON.stringify(t.raw, null, 2).slice(0, 800))}</pre>`);
+      // 정상적으로 고조/저조가 나왔을 때는 원본 JSON 덤프까지 보여줄 필요가 없고, 값이 하나도
+      // 안 나왔을 때만(원인 파악용 디버그 정보로) 보여줍니다.
+      if (t.raw && !t.highTide && !t.lowTide) {
+        lines.push(`<pre class="tide-raw">${escapeHtml(JSON.stringify(t.raw, null, 2).slice(0, 800))}</pre>`);
+      }
       if (t.rawResponsePreview) {
         lines.push('<div class="tide-hint">KHOA 원본 응답 (디버그용):</div>');
         lines.push(`<pre class="tide-raw">${escapeHtml(t.rawResponsePreview)}</pre>`);
       }
-      if (!t.highTide && !t.lowTide && !t.raw && !t.error) lines.push('이 지점의 물때 정보는 아직 연결되지 않았습니다.');
+      if (!t.highTide && !t.lowTide && !t.error && !t.mocked) {
+        lines.push('이 날짜에는 이 관측소의 고조/저조 예보 데이터가 없습니다 (관측소가 맞는지, 날짜를 확인해보세요).');
+      }
+      if (t.mocked) {
+        lines.push('<div class="tide-hint">서버 배포 주소 뒤에 <code>/api/status</code>를 붙여서 열어보면 KHOA_TIDE_KEY가 실제로 반영됐는지 확인할 수 있습니다.</div>');
+      }
       el.innerHTML = lines.map((l) => `<div>${l}</div>`).join('');
     })
     .catch(() => { el.textContent = '물때 정보를 가져오지 못했습니다.'; });
@@ -883,8 +1037,8 @@ function renderNearbyShopMarkers(lat, lng) {
             <a class="shop-popup-name" href="${kakaoMapLink(name, flat, flng)}" target="_blank" rel="noopener">${shopStyle.emoji} ${escapeHtml(name)}</a>
             <div class="shop-popup-meta">${typeLabelHtml}${distText ? ' · ' + distText : ''}</div>
           </div>`;
-        // 클릭하면 열리고, 다시 클릭하거나 다른 곳을 클릭할 때까지 유지되는 기본 팝업 동작을 그대로 씁니다
-        // (예전엔 mouseover/mouseout으로 강제로 호버 방식처럼 만들어서 안의 링크를 클릭할 수 없었습니다).
+        // 마우스를 올릴 때(mouseover)와 클릭할 때 각각 다른 작은/큰 풍선말이 따로 뜨던 걸 없애고,
+        // 항상 같은 팝업(popupHtml)이 뜨도록 통일합니다.
         const shopMarker = L.marker([flat, flng], {
           icon: L.divIcon({
             className: 'shop-icon',
@@ -895,6 +1049,8 @@ function renderNearbyShopMarkers(lat, lng) {
         })
           .bindPopup(popupHtml)
           .addTo(nearbyLayer);
+        shopMarker.on('mouseover', () => shopMarker.openPopup());
+        shopMarker.on('mouseout', () => shopMarker.closePopup());
       });
       return geojson;
     })

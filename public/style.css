@@ -7,6 +7,13 @@
   --border: #e1e4e8;
   --text: #1a1a1a;
   --muted: #6b7280;
+
+  /* 전체적인 포인트 색상 — 상단바 강조선, 날씨 배지, 버튼 등에 두루 씁니다 */
+  --accent: #0e8fd6;
+  --accent-soft: #eaf6fd;
+  --warm: #e08a1e;
+  --shadow-sm: 0 2px 8px rgba(15, 40, 70, 0.08);
+  --shadow-md: 0 8px 24px rgba(15, 40, 70, 0.14);
 }
 
 * { box-sizing: border-box; }
@@ -38,6 +45,18 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   flex: 0 0 auto;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 상단바 맨 아래에 얇은 그라데이션 강조선 — 화면 전체에 색이 조금 더 들어간 느낌을 줍니다 */
+#topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--sea), var(--fresh), var(--boat));
 }
 
 /* 지도 + 오버레이 패널들의 기준이 되는 컨테이너 (topbar 높이와 무관하게 항상 정확히 맞음) */
@@ -52,6 +71,8 @@ body {
 #topbar h1 {
   font-size: 24px;
   margin: 0;
+  color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 #region-nav {
@@ -112,18 +133,38 @@ body {
 .search-empty { padding: 10px 12px; color: var(--muted); font-size: 16px; }
 
 #btn-back {
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 6px;
-  padding: 5px 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 5px 12px;
   font-size: 17px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
-#btn-back:hover { background: #f1f2f4; }
+#btn-back:hover { background: #d9edfa; }
 
 #region-title { color: var(--muted); font-weight: 600; }
-#region-weather { color: var(--muted); font-size: 16px; cursor: help; }
+
+/* 날씨 배지 — 상단에서 눈에 잘 띄도록 색 배경 + 굵은 글씨의 알약 모양으로 표시합니다 */
+#region-weather {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-soft);
+  color: #0b5a86;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  cursor: help;
+  white-space: nowrap;
+}
+#region-weather:empty { display: none; }
+.weather-badge-icon { font-size: 18px; line-height: 1; }
+.weather-badge-text { line-height: 1; }
 
 #filters {
   display: flex;
@@ -210,6 +251,26 @@ body {
 
 #spot-list.hidden { display: none; }
 
+/* 목록 창을 아래로 긁어서(pull-to-close) 완전히 닫았을 때, 다시 열 수 있는 작은 알약 버튼 */
+#spot-list-reopen {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 1001;
+  background: var(--text);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+}
+#spot-list-reopen.hidden { display: none; }
+#spot-list-reopen:hover { background: #333; }
+
 #spot-list-header {
   padding: 12px 16px 10px;
   border-bottom: 1px solid var(--border);
@@ -258,6 +319,9 @@ body {
   font-weight: 700;
   letter-spacing: 0.02em;
 }
+.spot-group-title-sea { color: var(--sea); }
+.spot-group-title-freshwater { color: var(--fresh); }
+.spot-group-title-boat { color: var(--boat); }
 
 .spot-group-items { list-style: none; margin: 0; padding: 2px 0 4px; }
 
@@ -302,14 +366,16 @@ body {
   margin: 0 0 10px;
   border: 1px solid var(--border);
   background: #f5f7fa;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 5px 10px;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   color: var(--text);
+  transition: background 0.15s, border-color 0.15s;
 }
 
-#panel-to-region-view:hover { background: #eaf2fb; }
+#panel-to-region-view:hover { background: var(--accent-soft); border-color: var(--accent); }
 
 #tide-obscode-row {
   display: flex;
@@ -326,13 +392,17 @@ body {
 }
 
 #tide-obscode-apply {
-  border: 1px solid var(--border);
-  background: #f5f7fa;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
   border-radius: 6px;
-  padding: 5px 10px;
+  padding: 5px 12px;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
 }
+#tide-obscode-apply:hover { background: #0b76b0; }
 
 .tide-hint { font-size: 15px; color: var(--muted); margin: 6px 0 0; }
 .tide-hint a { color: inherit; }
@@ -348,10 +418,90 @@ body {
   word-break: break-all;
 }
 
-#panel h2 { margin: 0 24px 2px 0; font-size: 22px; }
+#panel h2 {
+  margin: 0 24px 8px 0;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.panel-title-name { font-weight: 800; }
 #panel-meta { margin: 0 0 14px; color: var(--muted); font-size: 17px; }
 #panel section { margin-bottom: 16px; }
-#panel h3 { font-size: 17px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+#panel h3 {
+  font-size: 15px;
+  margin: 0 0 8px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#panel h3::before { content: ''; width: 4px; height: 14px; border-radius: 2px; background: var(--accent); }
+
+/* 지도 위 풍선말/상세패널에서 이름 옆에 붙는 "구글/네이버/카카오" 지도 링크 3개 */
+.map-links {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.map-links a {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  text-decoration: none;
+  line-height: 1.7;
+  color: #fff;
+  white-space: nowrap;
+}
+.map-links a:hover { filter: brightness(1.08); text-decoration: none; }
+.map-links a:nth-child(1) { background: #4285f4; } /* 구글 블루 */
+.map-links a:nth-child(2) { background: #03c75a; } /* 네이버 그린 */
+.map-links a:nth-child(3) { background: #fee500; color: #3c1e1e; } /* 카카오 옐로 */
+.map-links-panel { margin-left: 10px; }
+
+/* ---------------------------------------------------------------------------
+   상세 패널 / 상단 배지 공용 날씨 위젯
+--------------------------------------------------------------------------- */
+.weather-mocked {
+  font-size: 14px;
+  color: var(--warm);
+  background: #fdf3e5;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+.weather-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.weather-emoji { font-size: 30px; line-height: 1; }
+.weather-temp { font-size: 26px; font-weight: 800; color: var(--text); }
+.weather-sky { font-size: 16px; color: var(--muted); font-weight: 600; }
+.weather-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.weather-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 15px;
+}
+.weather-stat-label { color: var(--muted); }
+.weather-stat-value { font-weight: 700; color: var(--text); }
 
 .badge {
   display: inline-block;
@@ -457,17 +607,9 @@ body {
 .spot-tooltip .tt-name {
   font-weight: 700;
   font-size: 17px;
-<<<<<<< HEAD
-  display: inline-flex;
-=======
-  display: flex;
->>>>>>> 07ecebcbcd683b0309229da9e2b6fd126dc3ab7d
-  align-items: center;
-  gap: 6px;
   color: var(--text);
-  text-decoration: none;
 }
-.spot-tooltip .tt-name:hover { color: var(--sea); text-decoration: underline; }
+.spot-tooltip .map-links { margin-left: 0; display: flex; margin-top: 4px; }
 
 .spot-tooltip .tt-meta {
   color: var(--muted);
