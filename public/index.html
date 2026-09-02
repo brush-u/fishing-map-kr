@@ -1,51 +1,335 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>대한민국 낚시지도</title>
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
-<link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.css" />
-<link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.Default.css" />
-<link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>brushu.net - 대나무숲 소원 쓰기</title>
+    <!-- 붓글씨 감성을 극대화하기 위해 구글 폰트의 '동해독도(East Sea Dokdo)'를 불러옵니다 -->
+    <link href="https://fonts.googleapis.com/css2?family=East+Sea+Dokdo&display=swap" rel="stylesheet">
+    <style>
+        /* 배경 설정 */
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #07111E, #0C1B2A);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'Malgun Gothic', sans-serif;
+            user-select: none;
+        }
+
+        /* 메인 컨테이너 */
+        .sky-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ★추가: 밤 대나무숲 배경 레이어 */
+        .bamboo-bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;          /* 탄자쿠(자동 쌓임)·버튼(100)보다 아래 */
+            pointer-events: none;
+        }
+        /* 은은한 달무리 */
+        .moon-glow {
+            position: absolute;
+            top: -80px; right: -60px;
+            width: 320px; height: 320px;
+            background: radial-gradient(circle, rgba(255,250,225,0.22) 0%, rgba(255,250,225,0.06) 40%, transparent 70%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        /* 바닥 안개 */
+        .ground-mist {
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 30%;
+            background: linear-gradient(180deg, transparent, rgba(120,150,140,0.14));
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ★추가: 걸린 소원 개수 표시 */
+        .wish-count {
+            position: absolute;
+            top: 28px; left: 28px;
+            color: rgba(255,255,255,0.75);
+            font-size: 14px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 20px;
+            padding: 6px 15px;
+            backdrop-filter: blur(5px);
+            z-index: 100;
+        }
+        .wish-count b { font-family: 'East Sea Dokdo', cursive; font-size: 20px; color: #ffe9a0; }
+
+        /* 흔들리는 탄자쿠(종이 카드) */
+        .tanzaku {
+            position: absolute;
+            width: 45px;
+            height: 150px;
+            border-radius: 3px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transform-origin: top center;
+            animation: windSway 5s ease-in-out infinite;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            writing-mode: vertical-rl; /* 세로쓰기 */
+            padding: 15px 5px;
+            box-sizing: border-box;
+            color: #222;
+            font-family: 'East Sea Dokdo', cursive;
+            font-size: 20px;
+            letter-spacing: 2px;
+            text-align: center;
+            z-index: 5;
+        }
+        /* ★추가: 탄자쿠를 가지에 매다는 실+매듭 */
+        .tanzaku::before {
+            content: "";
+            position: absolute;
+            top: -14px; left: 50%;
+            width: 2px; height: 15px;
+            background: rgba(214, 190, 150, 0.7);
+            transform: translateX(-50%);
+        }
+        .tanzaku::after {
+            content: "";
+            position: absolute;
+            top: -18px; left: 50%;
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #d9c39a;
+            transform: translateX(-50%);
+        }
+
+        /* 탄자쿠 파스텔 색상 테마 */
+        .color-pink { background: rgba(255, 182, 193, 0.9); }
+        .color-blue { background: rgba(173, 216, 230, 0.9); }
+        .color-yellow { background: rgba(255, 239, 185, 0.9); }
+        .color-green { background: rgba(193, 243, 193, 0.9); }
+
+        /* 바람에 흔들리는 모션 */
+        @keyframes windSway {
+            0% { transform: rotate(-3deg); }
+            50% { transform: rotate(5deg); }
+            100% { transform: rotate(-3deg); }
+        }
+
+        /* 마우스 호버 시 효과 */
+        .tanzaku:hover {
+            transform: scale(1.1) rotate(0deg) !important;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            z-index: 10;
+        }
+
+        /* 우측 하단 소원 쓰기 버튼 */
+        .write-btn {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 15px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        .write-btn:hover {
+            background: #fff;
+            color: #0c1b2a;
+            box-shadow: 0 0 20px rgba(255,255,255,0.4);
+        }
+
+        /* 팝업 모달 영역 */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 200;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* 한지 느낌의 소원 작성지 */
+        .write-card {
+            background: #fdfaf2; /* 한지 베이지 색상 */
+            border-radius: 8px;
+            padding: 30px;
+            width: 350px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: translateY(30px);
+            transition: transform 0.4s ease;
+        }
+
+        .modal-overlay.active .write-card {
+            transform: translateY(0);
+        }
+
+        .write-card h3 {
+            margin-top: 0;
+            color: #444;
+            font-weight: 400;
+        }
+
+        /* 입력창 */
+        .write-card textarea {
+            width: 100%;
+            height: 120px;
+            border: 1px dashed #ccc;
+            background: transparent;
+            resize: none;
+            padding: 10px;
+            box-sizing: border-box;
+            font-size: 18px;
+            font-family: 'East Sea Dokdo', cursive;
+            outline: none;
+            color: #333;
+            text-align: center;
+        }
+
+        /* 색상 선택 버튼들 */
+        .color-selector {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .color-dot {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border 0.2s;
+        }
+
+        .color-dot.active {
+            border-color: #555;
+        }
+
+        /* 등록 / 취소 버튼 그룹 */
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .btn-group button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn-submit {
+            background: #2c3e50;
+            color: #fff;
+        }
+
+        .btn-submit:hover { background: #1a252f; }
+
+        .btn-cancel {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .btn-cancel:hover { background: #d5d5d5; }
+
+        /* ★추가: 소원 크게 보기 / 내리기 카드 */
+        .view-card { text-align: center; }
+        .view-card .big {
+            font-family: 'East Sea Dokdo', cursive;
+            font-size: 40px; color: #333; line-height: 1.3;
+            white-space: pre-wrap; word-break: break-word; margin: 6px 0 4px;
+        }
+        .view-card .meta { color: #999; font-size: 13px; margin-bottom: 18px; }
+        .btn-del { background: #f0dcd6; color: #9a3520; }
+        .btn-del:hover { background: #e8cdc5; }
+
+        /* ★추가: 저장 안내 문구 */
+        .save-note {
+            position: absolute;
+            bottom: 16px; left: 24px;
+            color: rgba(255,255,255,0.45);
+            font-size: 12px;
+            z-index: 100;
+            max-width: 60%;
+        }
+
+        /* 반딧불이 커서 */
+        .firefly {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #fff7a0 0%, rgba(243,213,80,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            box-shadow: 0 0 10px #f3d550;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tanzaku { animation: none; }
+        }
+    </style>
 </head>
 <body>
-  <header id="topbar">
-    <h1>🎣 대한민국 낚시지도</h1>
-    <div id="region-nav" class="hidden">
-      <button id="btn-back">← 전체 권역 보기</button>
-      <span id="region-title"></span>
-      <span id="region-weather"></span>
-    </div>
-    <div id="search-box">
-      <input type="text" id="search-input" placeholder="🔍 낚시터 이름으로 검색..." autocomplete="off" />
-      <div id="search-results" class="hidden"></div>
-    </div>
-    <div id="filters">
-      <label><input type="checkbox" id="f-sea" checked /> 바다</label>
-      <label><input type="checkbox" id="f-freshwater" checked /> 민물</label>
-      <label><input type="checkbox" id="f-boat" checked /> 🚤 배낚시</label>
-      <label class="disabled"><input type="checkbox" id="f-lifestyle" disabled /> 생활낚시 (준비중)</label>
-    </div>
-  </header>
 
-  <div id="map-area">
-    <div id="map"></div>
-    <p id="hint">권역을 클릭하면 해당 권역의 낚시포인트가 모두 표시됩니다.</p>
+    <div class="sky-container" id="scene">
 
-    <div id="spot-list" class="hidden">
-      <div id="spot-list-header">
-        <div id="spot-list-handle" aria-hidden="true"></div>
-        <div id="spot-list-title"></div>
-        <div id="spot-list-chips">
-          <button type="button" class="chip chip-sea active" data-type="sea">🎣 바다</button>
-          <button type="button" class="chip chip-freshwater active" data-type="freshwater">🐟 민물</button>
-          <button type="button" class="chip chip-boat active" data-type="boat">🚤 배낚시</button>
-        </div>
-      </div>
-      <div id="spot-list-body"></div>
-    </div>
+        <!-- ★추가: 밤 대나무숲 배경 -->
+        <svg class="bamboo-bg" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+                <linearGradient id="culmNear" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#0E2A20"/>
+                    <stop offset="0.5" stop-color="#245240"/>
+                    <stop offset="1" stop-color="#0B211A"/>
+                </linearGradient>
+                <linearGradient id="culmFar" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#183A46"/>
+                    <stop offset="1" stop-color="#0F2932"/>
+                </linearGradient>
+            </defs>
 
+<<<<<<< HEAD
     <button id="spot-list-reopen" class="hidden" type="button">🎣 목록 다시 보기</button>
 
     <div id="panel" class="hidden">
@@ -53,37 +337,265 @@
       <button id="panel-to-region-view">🗺 전체 권역 보기</button>
       <h2 id="panel-title">-</h2>
       <p id="panel-meta"></p>
+=======
+            <!-- 먼 대나무 (푸른빛, 흐릿하게) -->
+            <g opacity="0.5" fill="url(#culmFar)">
+                <rect x="60"  y="0" width="14" height="800" rx="7"/>
+                <rect x="175" y="0" width="12" height="800" rx="6"/>
+                <rect x="285" y="0" width="15" height="800" rx="7"/>
+                <rect x="360" y="0" width="11" height="800" rx="6"/>
+            </g>
+            <g opacity="0.5" stroke="#2C5566" stroke-width="3">
+                <line x1="60" y1="170" x2="74" y2="170"/><line x1="60" y1="400" x2="74" y2="400"/><line x1="60" y1="620" x2="74" y2="620"/>
+                <line x1="175" y1="260" x2="187" y2="260"/><line x1="175" y1="500" x2="187" y2="500"/>
+                <line x1="285" y1="140" x2="300" y2="140"/><line x1="285" y1="360" x2="300" y2="360"/><line x1="285" y1="590" x2="300" y2="590"/>
+            </g>
+>>>>>>> c3be289e321887183f1de54b56501c45f5eadc62
 
-      <section>
-        <h3>날씨</h3>
-        <div id="panel-weather">불러오는 중...</div>
-      </section>
+            <!-- 가까운 대나무 (달빛 받은 초록) -->
+            <g fill="url(#culmNear)">
+                <rect x="14"  y="0" width="30" height="800" rx="12"/>
+                <rect x="215" y="0" width="34" height="800" rx="13"/>
+                <rect x="330" y="0" width="26" height="800" rx="11"/>
+            </g>
+            <!-- 마디 -->
+            <g stroke="#08170F" stroke-width="6" stroke-linecap="round">
+                <line x1="14" y1="130" x2="44" y2="130"/><line x1="14" y1="340" x2="44" y2="340"/><line x1="14" y1="550" x2="44" y2="550"/><line x1="14" y1="740" x2="44" y2="740"/>
+                <line x1="215" y1="210" x2="249" y2="210"/><line x1="215" y1="440" x2="249" y2="440"/><line x1="215" y1="660" x2="249" y2="660"/>
+                <line x1="330" y1="170" x2="356" y2="170"/><line x1="330" y1="410" x2="356" y2="410"/><line x1="330" y1="640" x2="356" y2="640"/>
+            </g>
+            <!-- 달빛 하이라이트(줄기 한쪽 면) -->
+            <g fill="#3E7A5E" opacity="0.5">
+                <rect x="16" y="0" width="5" height="800" rx="3"/>
+                <rect x="217" y="0" width="5" height="800" rx="3"/>
+                <rect x="332" y="0" width="4" height="800" rx="3"/>
+            </g>
+            <!-- 잎 -->
+            <g fill="#1F4A38" opacity="0.9">
+                <path d="M249 220 q42 -22 82 -8 q-42 12 -82 8Z"/>
+                <path d="M249 250 q46 6 74 36 q-44 -6 -74 -36Z"/>
+                <path d="M44 140 q42 -20 34 -2 q-22 8 -34 2Z"/>
+                <path d="M356 180 q42 -18 62 4 q-36 6 -62 -4Z"/>
+                <path d="M356 420 q40 6 58 34 q-40 -4 -58 -34Z"/>
+            </g>
+        </svg>
+        <div class="moon-glow"></div>
+        <div class="ground-mist"></div>
 
-      <section>
-        <h3>물때</h3>
-        <div id="panel-tide">불러오는 중...</div>
-        <div id="tide-obscode-row">
-          <input type="text" id="tide-obscode" placeholder="다른 관측소로 보기 (예: DT_0001, 선택사항)" />
-          <button id="tide-obscode-apply">조회</button>
-        </div>
-        <p class="tide-hint">가장 가까운 관측소가 자동으로 선택됩니다. 다른 관측소 값을 보고 싶을 때만 코드를 직접 입력하세요.
-          <a href="https://www.data.go.kr/data/15146602/fileData.do" target="_blank" rel="noopener">관측소 목록 보기</a></p>
-      </section>
+        <!-- ★추가: 걸린 소원 개수 -->
+        <div class="wish-count">🎋 걸린 소원 <b id="countNum">0</b></div>
 
-      <section>
-        <h3>주변 편의점 / 상점</h3>
-        <div id="panel-nearby">불러오는 중...</div>
-      </section>
+        <!-- 탄자쿠는 저장된 데이터로 자동 생성됩니다 -->
 
-      <section class="coming-soon">
-        <h3>생활낚시 정보 <span class="badge">준비중</span></h3>
-        <p>도심 인근 접근성, 주차, 화장실, 초심자 난이도 등 생활낚시 관련 정보가 추후 이 자리에 표시됩니다.</p>
-      </section>
-    </div>
-  </div>
+        <!-- 글쓰기 버튼 -->
+        <button class="write-btn" id="openWriteBtn">🎋 소원 매달기</button>
 
-  <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="vendor/leaflet.markercluster/leaflet.markercluster.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+        <!-- ★추가: 저장 안내 -->
+        <div class="save-note" id="saveNote">소원은 이 브라우저에 저장돼요. 다시 찾아오면 그대로 걸려 있습니다.</div>
+    </div>
+
+    <!-- 글쓰기 레이어(모달) -->
+    <div class="modal-overlay" id="writeModal">
+        <div class="write-card">
+            <h3>대나무에 매달 소원 적기</h3>
+            <textarea id="wishInput" maxlength="15" placeholder="소원을 적어보세요 (최대 15자)"></textarea>
+            
+            <!-- 종이 색상 선택기 -->
+            <div class="color-selector">
+                <div class="color-dot color-pink active" data-color="pink"></div>
+                <div class="color-dot color-blue" data-color="blue"></div>
+                <div class="color-dot color-yellow" data-color="yellow"></div>
+                <div class="color-dot color-green" data-color="green"></div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-cancel" id="cancelBtn">돌아가기</button>
+                <button class="btn-submit" id="submitBtn">매달기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ★추가: 소원 크게 보기 / 내리기 모달 -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="write-card view-card">
+            <div class="big" id="viewText"></div>
+            <div class="meta" id="viewMeta"></div>
+            <div class="btn-group">
+                <button class="btn-cancel" id="viewClose">닫기</button>
+                <button class="btn-del" id="viewDel">소원 내리기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const scene = document.getElementById('scene');
+        const openWriteBtn = document.getElementById('openWriteBtn');
+        const writeModal = document.getElementById('writeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const wishInput = document.getElementById('wishInput');
+        const colorDots = document.querySelectorAll('.color-dot');
+
+        let selectedColor = 'pink'; // 기본 선택 색상
+
+        /* ★추가: 저장(로컬스토리지) 관리 -------------------------------- */
+        const STORE_KEY = 'brushu_wishes_v1';
+        let wishes = [];
+        let canStore = true;
+        let viewingId = null;
+
+        function loadWishes() {
+            try {
+                const raw = localStorage.getItem(STORE_KEY);
+                wishes = raw ? JSON.parse(raw) : null;
+            } catch (e) { canStore = false; wishes = null; }
+
+            // 처음 방문(저장된 소원 없음)이면 예시 소원을 기본으로 걸어둡니다
+            if (!wishes) {
+                wishes = [
+                    { id: 's1', text: '늘 행복하기를',        color: 'pink',   x: 25, y: 20, ts: Date.now() },
+                    { id: 's2', text: '올해는 더 멋지게',      color: 'blue',   x: 45, y: 35, ts: Date.now() },
+                    { id: 's3', text: '원하는 대로 이루어져라', color: 'yellow', x: 70, y: 15, ts: Date.now() }
+                ];
+                saveWishes();
+            }
+        }
+
+        function saveWishes() {
+            try {
+                localStorage.setItem(STORE_KEY, JSON.stringify(wishes));
+            } catch (e) {
+                canStore = false;
+                document.getElementById('saveNote').textContent =
+                    '지금은 미리보기라 저장이 제한돼요 — 블로그에 올리면 방문자 브라우저에 저장됩니다.';
+            }
+        }
+
+        function updateCount() {
+            document.getElementById('countNum').textContent = wishes.length;
+        }
+
+        /* 탄자쿠 하나를 화면에 그리기 */
+        function createTanzaku(w, animate) {
+            const el = document.createElement('div');
+            el.classList.add('tanzaku', `color-${w.color}`);
+            el.innerText = w.text;
+            el.style.left = `${w.x}%`;
+            el.style.top = `${w.y}%`;
+            el.dataset.id = w.id;
+            // 저장된 소원마다 흔들림 리듬을 살짝 다르게
+            el.style.animationDelay = `-${(parseInt(w.id.slice(-2)) || 0) % 5 * 0.7}s`;
+
+            el.addEventListener('click', () => openView(w.id));
+
+            if (animate) {
+                el.style.opacity = '0';
+                el.style.transform = 'scale(0.5) rotate(-10deg)';
+            }
+            scene.appendChild(el);
+            if (animate) {
+                setTimeout(() => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'scale(1) rotate(0deg)';
+                }, 100);
+            }
+            return el;
+        }
+
+        function renderAll() {
+            document.querySelectorAll('.tanzaku').forEach(t => t.remove());
+            wishes.forEach(w => createTanzaku(w, false));
+            updateCount();
+        }
+
+        /* 소원 크게 보기 / 내리기 */
+        function openView(id) {
+            const w = wishes.find(x => x.id === id);
+            if (!w) return;
+            viewingId = id;
+            document.getElementById('viewText').innerText = w.text;
+            const d = new Date(w.ts);
+            document.getElementById('viewMeta').innerText = `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+            document.getElementById('viewModal').classList.add('active');
+        }
+        document.getElementById('viewClose').addEventListener('click', () => {
+            document.getElementById('viewModal').classList.remove('active');
+            viewingId = null;
+        });
+        document.getElementById('viewDel').addEventListener('click', () => {
+            wishes = wishes.filter(x => x.id !== viewingId);
+            saveWishes();
+            renderAll();
+            document.getElementById('viewModal').classList.remove('active');
+            viewingId = null;
+        });
+        /* ------------------------------------------------------------- */
+
+        // 1. 반딧불이 마우스 이펙트
+        scene.addEventListener('mousemove', (e) => {
+            // 모달창이 열려 있을 때는 반딧불이를 그리지 않음
+            if (writeModal.classList.contains('active') || document.getElementById('viewModal').classList.contains('active')) return;
+
+            const firefly = document.createElement('div');
+            firefly.classList.add('firefly');
+            firefly.style.left = e.clientX + 'px';
+            firefly.style.top = e.clientY + 'px';
+            scene.appendChild(firefly);
+
+            setTimeout(() => {
+                firefly.style.opacity = '0';
+                firefly.style.transform = 'translate(-50%, -50%) scale(0)';
+                setTimeout(() => firefly.remove(), 500);
+            }, 500);
+        });
+
+        // 2. 글쓰기 모달 열기/닫기
+        openWriteBtn.addEventListener('click', () => {
+            writeModal.classList.add('active');
+            wishInput.focus();
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            writeModal.classList.remove('active');
+            wishInput.value = '';
+        });
+
+        // 3. 종이 카드 색상 고르기
+        colorDots.forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                colorDots.forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+                selectedColor = dot.getAttribute('data-color');
+            });
+        });
+
+        // 4. 소원 매달기 인터랙션 구현 (★저장 추가)
+        submitBtn.addEventListener('click', () => {
+            const text = wishInput.value.trim();
+            if (!text) {
+                alert('소원을 먼저 작성해 주세요.');
+                return;
+            }
+
+            // 랜덤 위치 지정 (양 끝단 마진 확보)
+            const randomX = Math.floor(Math.random() * 70) + 15; // 15% ~ 85% 사이
+            const randomY = Math.floor(Math.random() * 40) + 15; // 15% ~ 55% 사이
+
+            const wish = {
+                id: 'w' + Date.now(),
+                text: text,
+                color: selectedColor,
+                x: randomX,
+                y: randomY,
+                ts: Date.now()
+            };
+
+            wishes.push(wish);   // ★ 데이터에 추가
+            saveWishes();        // ★ 브라우저에 저장
+            createTanzaku(wish, true); // 스르륵 등장
+            updateCount();
+
+            // 입력창 닫고 비우기
+            writeModal.classList.remove('active');
+            wishInput.value = '';
+        });
