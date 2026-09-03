@@ -377,35 +377,39 @@ body {
 
 #panel-to-region-view:hover { background: var(--accent-soft); border-color: var(--accent); }
 
-#tide-obscode-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-#tide-obscode {
-  flex: 1;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 5px 8px;
-  font-size: 16px;
-}
-
-#tide-obscode-apply {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
-  border-radius: 6px;
-  padding: 5px 12px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-#tide-obscode-apply:hover { background: #0b76b0; }
-
 .tide-hint { font-size: 15px; color: var(--muted); margin: 6px 0 0; }
 .tide-hint a { color: inherit; }
+
+.tide-badge {
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.tide-badge-mocked { color: #8a5a12; background: #fdf3e5; border: 1px solid #f3d9a8; }
+.tide-badge-error { color: #b3261e; background: #fdecea; border: 1px solid #f3b7b2; }
+.tide-badge-empty { color: var(--muted); background: #f5f7fa; border: 1px solid var(--border); font-weight: 500; }
+
+.tide-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 4px 0 8px;
+}
+.tide-stat {
+  flex: 1 1 130px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tide-stat-high { background: #fdecea; }
+.tide-stat-low { background: #e7f1fb; }
+.tide-stat-label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.tide-stat-value { font-size: 18px; font-weight: 800; color: #17324a; }
 
 .tide-raw {
   font-size: 15px;
@@ -676,7 +680,7 @@ body {
 
   /* 터치 탭 영역을 넉넉하게 */
   #filters label { padding: 4px 0; }
-  #btn-back, #panel-to-region-view, #tide-obscode-apply, #panel-close {
+  #btn-back, #panel-to-region-view, #panel-close {
     padding-top: 8px;
     padding-bottom: 8px;
   }

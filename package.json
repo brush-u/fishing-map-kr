@@ -8,6 +8,10 @@
     "start": "node server.js",
     "import:spots": "node data/scripts/import_standard_csv.js",
     "geocode:boats": "node data/scripts/geocode_boat_ports.js",
+    "filter:boats": "node data/scripts/filter_boat_spots.js",
+    "filter:boats:apply": "node data/scripts/filter_boat_spots.js --apply",
+    "fetch:japan": "node data/scripts/extract_japan_spots_pbf.js",
+    "fetch:japan:overpass": "node data/scripts/fetch_japan_spots.js",
     "push": "bash scripts/push-to-github.sh",
     "deploy": "bash scripts/deploy-to-cloudrun.sh"
   },
@@ -24,6 +28,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "pbf2json": "^6.15.0"
   }
 }

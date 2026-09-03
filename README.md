@@ -71,6 +71,40 @@ npm start
 
 추가로 민물 데이터를 더 보강하려면 한국농어촌공사의 저수지 관련 공공데이터([data.go.kr 검색: "저수지 현황"](https://www.data.go.kr))도 같은 방식으로 합칠 수 있습니다.
 
+### 일본 낚시포인트 추가하기 (선택)
+
+같은 지도에 일본 47개 도도부현 경계와 낚시포인트도 함께 표시할 수 있습니다. 일본은 한국의
+data.go.kr 같은 전국 단위 무료 낚시포인트 공공데이터가 없어서, 대신 OpenStreetMap(오픈
+스트리트맵)의 `leisure=fishing` 태그 데이터를 씁니다.
+
+> ⚠️ **2026년부터 공개 Overpass API 서버(overpass-api.de)가 AI 크롤러 과부하로 요청을
+> 자주 406/429로 거부합니다** (이 프로젝트나 여러분의 네트워크 설정 문제가 아니라 Overpass
+> 운영자 쪽 서버 과부하입니다). 그래서 실시간 API 조회 대신, 일본 전체 OSM 데이터 파일을
+> 한 번 내려받아서 **로컬에서 직접 읽어 처리하는 방식**을 기본으로 씁니다 — 네트워크 차단/
+> 속도제한 문제가 전혀 없고, 오히려 더 빠릅니다.
+
+준비:
+1. 브라우저로 [japan-latest.osm.pbf](https://download.geofabrik.de/asia/japan-latest.osm.pbf)를
+   열어 내려받습니다 (약 1.5GB, 네트워크 속도에 따라 몇 분 걸릴 수 있습니다).
+2. 받은 파일을 `data/raw/japan-latest.osm.pbf` 위치에 둡니다 (`data/raw` 폴더가 없으면 새로
+   만들어서 그 안에 넣어주세요).
+3. 아래 명령을 실행합니다.
+
+```bash
+npm run fetch:japan
+```
+
+파일을 로컬에서 읽어 처리하는 데 보통 1~3분 정도 걸리고(기기 성능에 따라 다름), 완료되면
+`data/japan_spots.geojson`이 생성됩니다(있으면 서버가 자동으로 기존 데이터에 합쳐서
+내려줍니다 — `boat_spots.geojson`과 동일한 방식). 일본 지점은 기상청/KHOA/카카오 API가
+지원하지 않는 지역이라 날씨·물때·주변 편의점 정보 대신 "지원 범위 밖" 안내가 표시됩니다.
+도도부현 경계 자체(`data/boundaries/japan-prefectures.geo.json`)는 이미 이 저장소에
+포함돼 있어서 별도로 받을 필요는 없습니다.
+
+> 참고: 예전 방식(Overpass API로 47개 현을 하나씩 실시간 조회)은 `npm run
+> fetch:japan:overpass`로 여전히 남아있지만, 위 차단 문제 때문에 지금은 추천하지
+> 않습니다 — Overpass 쪽 과부하가 풀리기 전까지는 위의 로컬 파일 처리 방식을 쓰세요.
+
 ---
 
 ## 3. 당신이 해야 할 일 (체크리스트)
@@ -113,6 +147,19 @@ npm start
   (직접 명령을 치고 싶다면 물론 평소처럼 `git add . && git commit -m "..." && git push`도 그대로 됩니다.)
   (이 환경에는 GitHub 로그인이 연결되어 있지 않아 제가 직접 푸시할 수 없습니다. 위 명령을 직접 실행해주세요.)
 
+  > 🪟 **PowerShell에서 `npm run push`가 "이 시스템에서 스크립트를 실행할 수 없으므로..."라는
+  > 보안 오류로 막히면** — Windows 기본 설정이 PowerShell 스크립트(`npm.ps1`) 실행을 막아둔 것으로,
+  > `npm run push` 자체와는 무관하게 웬만한 `npm ...` 명령에서 다 똑같이 나는 흔한 문제입니다. 아래 둘 중 하나로 해결:
+  > - **가장 간단**: 아예 PowerShell 대신 **Git Bash**를 쓰세요 (탐색기에서 프로젝트 폴더 우클릭 → "Git Bash Here",
+  >   또는 시작메뉴에서 Git Bash 실행 후 `cd`). 이 문제 자체가 안 생기고, 애초에 `bash` 스크립트라 Git Bash가 정석입니다.
+  > - **PowerShell을 계속 쓰고 싶다면**: PowerShell을 열고 아래 명령을 **한 번만** 실행(관리자 권한 불필요):
+  >   ```powershell
+  >   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+  >   ```
+  >   `Y`로 확인하면 이후 npm 관련 명령이 모두 정상 동작합니다. (인터넷에서 받은 서명 안 된 스크립트는 여전히 막고,
+  >   로컬에 설치된 npm 같은 스크립트만 허용하는 안전한 기본값입니다.)
+  >   지금 당장 정책을 바꾸기 싫다면 그 세션에서만 임시로 `npm.cmd run push`처럼 `.cmd`를 붙여 실행해도 우회됩니다.
+
 > ⚡ **당장 폰으로 빨리 테스트만 해보고 싶다면**, 아래 ③ Cloud Run 배포 없이도 가능합니다: 컴퓨터에서
 > `npm start`로 서버를 켠 다음, 폰이 **같은 Wi-Fi**에 붙어있는 상태에서 컴퓨터의 로컬 IP로 접속하면 됩니다
 > (`http://<컴퓨터의 사설IP>:8080`, 예: `http://192.168.0.5:8080`). Mac은 `ipconfig getifaddr en0`,
@@ -123,25 +170,37 @@ npm start
 GitHub에 push하는 것과는 **별개의 단계**입니다 — Cloud Run이 실제로 서버를 띄워서 공개 URL을 만들어주는
 쪽이고, GitHub는 그 소스를 가져오는 곳일 뿐입니다. 아래 단계가 "구글 클라우드 설정"에 해당합니다.
 
-- [ ] GCP 프로젝트 생성, **빌링 계정 연결** (Cloud Run은 카드 등록은 필요하지만, 이 정도 트래픽이면 무료 한도 내에서 과금 없이 운영됩니다)
-- [ ] `gcloud` CLI 설치 후 로그인: `gcloud auth login && gcloud config set project <PROJECT_ID>`
-- [ ] 배포 (GitHub push 여부와 무관하게, 로컬 코드 폴더에서 바로 실행 가능합니다 — `--source .`가 지금 폴더를 그대로 업로드해서 빌드합니다):
+- [ ] GCP 프로젝트 생성 ([console.cloud.google.com](https://console.cloud.google.com) → 상단 프로젝트 선택 → 새 프로젝트)
+- [ ] **빌링 계정 연결** (Cloud Console → 결제 → 카드 등록 — Cloud Run 자체는 무료 한도 안에서 충분하지만, 카드 등록은 GCP 정책상 필요합니다)
+- [ ] `gcloud` CLI 설치: <https://cloud.google.com/sdk/docs/install>
+- [ ] 설치 후 터미널(Windows는 Git Bash)에서 로그인 + 프로젝트 선택 (한 번만):
   ```bash
-  gcloud run deploy fishing-map-kr \
-    --source . \
-    --region asia-northeast3 \
-    --allow-unauthenticated \
-    --set-env-vars KMA_FORECAST_KEY=xxxx,KHOA_TIDE_KEY=xxxx,KAKAO_REST_API_KEY=xxxx
+  gcloud init
   ```
-  (키는 커밋하지 말고 위처럼 `--set-env-vars` 또는 **Secret Manager**로 주입하세요. 아직 안 받은 키가 있다면
-  해당 부분은 빼고 배포해도 되고, 나중에 키를 받으면 `gcloud run services update fishing-map-kr
-  --update-env-vars KAKAO_REST_API_KEY=xxxx`처럼 키 하나만 추가/갱신할 수 있습니다.)
-  - 명령이 끝나면 `https://fishing-map-kr-xxxxx-an.a.run.app` 같은 URL이 출력됩니다 — 이 URL을 폰 브라우저에 입력하면 Wi-Fi든 LTE든 어디서나 접속됩니다.
+  (`gcloud init`이 로그인 창을 띄우고, 방금 만든 프로젝트를 선택하라고 안내해줍니다. 따로 하고 싶으면
+  `gcloud auth login` 후 `gcloud config set project <프로젝트ID>`)
+- [ ] 배포 — `scripts/deploy-to-cloudrun.sh` 스크립트를 넣어뒀습니다. `.env`에 넣어둔 API 키를 자동으로
+  읽어서 Cloud Run에 같이 설정해주기 때문에, `--set-env-vars`를 손으로 안 쳐도 됩니다:
+  ```bash
+  npm run deploy
+  ```
+  (GitHub push 여부와 무관하게, 지금 컴퓨터에 있는 코드를 그대로 Cloud Run에 올립니다. 처음 배포할 땐
+  몇 분 걸릴 수 있고, 끝나면 `https://fishing-map-kr-xxxxx-an.a.run.app` 같은 URL을 알려줍니다 —
+  이 URL을 폰 브라우저에 입력하면 Wi-Fi든 LTE든 어디서나 접속됩니다.)
+  - 코드를 고칠 때마다(또는 `.env`에 새 키를 추가했을 때마다) `npm run deploy`를 다시 실행하면 같은
+    서비스에 새 버전으로 갱신됩니다.
+  - 직접 명령을 치고 싶다면 참고용 원본 명령:
+    ```bash
+    gcloud run deploy fishing-map-kr --source . --region asia-northeast3 \
+      --allow-unauthenticated --set-env-vars KMA_FORECAST_KEY=xxxx,KHOA_TIDE_KEY=xxxx
+    ```
 
-### ④ GitHub 자동배포 (CI/CD) — main에 push하면 자동으로 Cloud Run에 배포
+### ④ (선택) GitHub 자동배포 (CI/CD) — main에 push하면 자동으로 Cloud Run에 배포
 
-위 ③번을 매번 손으로 치는 대신, `main` 브랜치에 push할 때마다 GitHub Actions가 자동으로 Cloud Run에
-배포해주는 스크립트를 `.github/workflows/deploy.yml`에 넣어뒀습니다. 아래 준비물만 한 번 세팅하면 됩니다.
+③번의 `npm run deploy`는 "내가 원할 때 내 컴퓨터에서" 배포하는 방식입니다. 그 대신 `main` 브랜치에
+`npm run push`로 push할 때마다 **컴퓨터 없이도 GitHub 서버가 알아서** Cloud Run까지 자동 배포해주게
+만들고 싶다면, `.github/workflows/deploy.yml`을 넣어뒀습니다. 아래 준비물만 한 번 세팅하면 됩니다
+(③번만 써도 충분하다면 이 섹션은 건너뛰어도 됩니다).
 
 **1) 배포용 서비스 계정 생성 + 권한 부여** (터미널에서, `gcloud auth login` 되어있는 상태에서 한 번만)
 ```bash

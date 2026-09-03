@@ -1,15 +1,20 @@
 // 줌 컨트롤은 기본(top-left) 위치가 좌측 "권역 목록" 패널과 겹치므로 bottom-left로 옮깁니다.
-const map = L.map('map', { zoomControl: false }).setView([36.2, 127.8], 7); // 대한민국 전체가 보이는 초기 시야
+// 초기 시야는 일단 한국+일본이 대략 다 보이는 값으로 잡아두고, 실제 권역 경계 데이터가
+// 로드되면 그 전체 범위에 맞춰 fitBounds로 다시 한번 정확히 맞춥니다(아래 OVERVIEW_VIEW).
+const map = L.map('map', { zoomControl: false }).setView([34.5, 132], 5);
 L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' +
-    ' | 시도 경계: KOSTAT 2013 (via southkorea/southkorea-maps)',
+    ' | 시도 경계: KOSTAT 2013 (via southkorea/southkorea-maps), dataofjapan/land',
 }).addTo(map);
 
-const KOREA_VIEW = { center: [36.2, 127.8], zoom: 7 };
+// 전체 권역 화면으로 돌아갈 때 쓰는 기준 시야. 처음엔 대략값이고, 권역 경계 데이터가 로드되면
+// 실제 데이터 범위(한국+일본 전체)에 맞춰 갱신됩니다.
+let OVERVIEW_VIEW = { center: [34.5, 132], zoom: 5 };
+let OVERVIEW_BOUNDS = null; // L.latLngBounds — 경계 데이터 로드 후 채워짐
 const markerColor = { sea: '#1d6fb8', freshwater: '#2e8b4f', boat: '#8b5cf6' };
 
 // 2013년 KOSTAT 정식명칭 -> 화면에 쓰는 짧은 이름
@@ -20,6 +25,20 @@ const FULL_TO_SHORT = {
   광주광역시: '광주', 대전광역시: '대전', 울산광역시: '울산', 세종특별자치시: '세종',
   경기도: '경기', 강원도: '강원', 충청북도: '충북', 충청남도: '충남',
   전라북도: '전북', 전라남도: '전남', 경상북도: '경북', 경상남도: '경남', 제주특별자치도: '제주',
+
+  // 일본 47개 도도부현(한글 표기) -> 화면에 쓰는 짧은 이름 (data/boundaries/japan-prefectures.geo.json)
+  홋카이도: '홋카이도', 아오모리현: '아오모리', 이와테현: '이와테', 미야기현: '미야기',
+  아키타현: '아키타', 야마가타현: '야마가타', 후쿠시마현: '후쿠시마', 이바라키현: '이바라키',
+  도치기현: '도치기', 군마현: '군마', 사이타마현: '사이타마', 지바현: '지바',
+  도쿄도: '도쿄', 가나가와현: '가나가와', 니가타현: '니가타', 도야마현: '도야마',
+  이시카와현: '이시카와', 후쿠이현: '후쿠이', 야마나시현: '야마나시', 나가노현: '나가노',
+  기후현: '기후', 시즈오카현: '시즈오카', 아이치현: '아이치', 미에현: '미에',
+  시가현: '시가', 교토부: '교토', 오사카부: '오사카', 효고현: '효고',
+  나라현: '나라', 와카야마현: '와카야마', 돗토리현: '돗토리', 시마네현: '시마네',
+  오카야마현: '오카야마', 히로시마현: '히로시마', 야마구치현: '야마구치', 도쿠시마현: '도쿠시마',
+  가가와현: '가가와', 에히메현: '에히메', 고치현: '고치', 후쿠오카현: '후쿠오카',
+  사가현: '사가', 나가사키현: '나가사키', 구마모토현: '구마모토', 오이타현: '오이타',
+  미야자키현: '미야자키', 가고시마현: '가고시마', 오키나와현: '오키나와',
 };
 
 let allFeatures = [];
@@ -148,17 +167,56 @@ function tooltipHtml(p, lat, lng) {
     </div>`;
 }
 
+// 마커에 "마우스를 올리면 풍선말이 뜨고, 풍선말 안으로 마우스를 옮겨서 그 안의 링크를
+// 클릭할 수 있는" 팝업을 붙입니다. 낚시포인트 마커와 주변 편의점/상점 마커 양쪽에서 씁니다.
+//
+// Leaflet의 bindTooltip 기본 동작은 마우스가 "마커"에서 벗어나는 순간 곧바로 닫혀버려서,
+// 마커에서 풍선말 쪽으로 마우스를 옮기는 도중에 닫혀 안의 링크를 클릭할 수 없었습니다.
+// (편의점 마커는 애초에 bindPopup을 쓰고 있었지만, mouseout에서 지연 없이 바로
+// closePopup()을 호출하고 있어서 똑같은 문제가 있었습니다 — 아래처럼 고쳤습니다.)
+// bindPopup은 자동으로 닫히지 않으므로, 직접 mouseover/mouseout으로 열고 닫되, 풍선말
+// 자체에 마우스가 들어와 있는 동안은 약간의 지연(150ms) 후에도 닫지 않습니다.
+function bindHoverPopup(marker, popupHtml, popupOptions) {
+  marker.bindPopup(popupHtml, popupOptions);
+
+  let closeTimer = null;
+  const cancelClose = () => {
+    if (closeTimer) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer = setTimeout(() => marker.closePopup(), 150);
+  };
+  marker.on('popupopen', () => {
+    const el = marker.getPopup()?.getElement();
+    if (!el) return;
+    el.addEventListener('mouseenter', cancelClose);
+    el.addEventListener('mouseleave', scheduleClose);
+  });
+  marker.on('mouseover', () => {
+    cancelClose();
+    marker.openPopup();
+  });
+  marker.on('mouseout', scheduleClose);
+  return marker;
+}
+
 function makeSpotMarker(feature) {
   const [lng, lat] = feature.geometry.coordinates;
   const p = feature.properties;
   const type = spotCategory(feature);
   const marker = L.marker([lat, lng], { icon: pinIcon(type) });
-  marker.bindTooltip(tooltipHtml(p, lat, lng), {
-    direction: 'top',
-    opacity: 0.97,
+
+  bindHoverPopup(marker, tooltipHtml(p, lat, lng), {
     className: 'spot-tooltip-wrapper',
-    interactive: true, // 풍선말 안의 구글맵 링크를 클릭할 수 있게
+    closeButton: false,
+    autoPan: false,
+    offset: [0, -28],
   });
+
   marker.on('click', (e) => {
     // 마커 클릭이 지도 자체의 클릭으로도 전파되면, 아래 "지점 주변 보기" 지도 클릭 핸들러가
     // 같이 실행돼서 목록이 그 마커 위치 기준으로 다시 바뀌어버립니다 — 그걸 막습니다.
@@ -336,7 +394,8 @@ function showRegionView() {
   detailMarkerLayer.clearLayers();
   nearbyLayer.clearLayers();
   rebuildProvinceLayer();
-  map.setView(KOREA_VIEW.center, KOREA_VIEW.zoom);
+  if (OVERVIEW_BOUNDS) map.fitBounds(OVERVIEW_BOUNDS, { padding: [20, 20] });
+  else map.setView(OVERVIEW_VIEW.center, OVERVIEW_VIEW.zoom);
   document.getElementById('region-nav').classList.add('hidden');
   document.getElementById('region-title').textContent = '';
   document.getElementById('region-weather').textContent = '';
@@ -510,8 +569,8 @@ function loadRegionWeather(point) {
 document.getElementById('btn-back').addEventListener('click', showRegionView);
 
 // 지도를 줌아웃해서 권역 상세 뷰보다 더 넓은 범위가 보이면 자동으로 전체 권역 뷰로 돌아갑니다.
-// (17개 시/도 전체를 기준으로 드릴다운 시 도달하는 최소 줌 레벨이 8이어서, 7 이하를 "축소됨"으로 판단)
-const AUTO_COLLAPSE_ZOOM = KOREA_VIEW.zoom;
+// 전체 권역(한국+일본)을 fitBounds한 실제 줌 레벨로 아래 데이터 로드 시 갱신됩니다.
+let AUTO_COLLAPSE_ZOOM = OVERVIEW_VIEW.zoom;
 map.on('zoomend', () => {
   if (currentView.mode !== 'region' && map.getZoom() <= AUTO_COLLAPSE_ZOOM) {
     showRegionView();
@@ -872,6 +931,15 @@ Promise.all([fetch('/api/spots').then((r) => r.json()), fetch('/api/boundaries/p
     provinceFeatures = boundariesGeojson.features;
     assignProvinces(allFeatures, provinceFeatures);
     rebuildProvinceLayer();
+
+    // 실제 권역 경계 전체(한국 + 일본이 있으면 일본도 포함)에 맞춰 초기 시야를 다시 잡습니다.
+    if (provinceFeatures.length) {
+      OVERVIEW_BOUNDS = L.geoJSON({ type: 'FeatureCollection', features: provinceFeatures }).getBounds();
+      map.fitBounds(OVERVIEW_BOUNDS, { padding: [20, 20] });
+      // fitBounds는 동기적으로 뷰를 확정하므로, 바로 이어서 읽은 줌 레벨이 실제 "전체 보기" 줌입니다.
+      OVERVIEW_VIEW = { center: map.getCenter(), zoom: map.getZoom() };
+      AUTO_COLLAPSE_ZOOM = map.getZoom();
+    }
   })
   .catch((err) => console.error('지도 데이터 로드 실패', err));
 
@@ -882,8 +950,7 @@ const panel = document.getElementById('panel');
 document.getElementById('panel-close').addEventListener('click', () => panel.classList.add('hidden'));
 document.getElementById('panel-to-region-view').addEventListener('click', showRegionView);
 
-let currentSpot = null; // { lat, lng } — 물때 관측소 코드를 다시 조회할 때 사용
-let lastObsCode = ''; // 같은 세션에서 편의상 마지막으로 입력한 관측소 코드를 기억
+let currentSpot = null; // { lat, lng }
 
 function openPanel(props, lat, lng) {
   panel.classList.remove('hidden');
@@ -897,18 +964,10 @@ function openPanel(props, lat, lng) {
     (props.species?.length ? ` · 주요어종: ${props.species.join(', ')}` : '') +
     (props.category === 'boat' && props.boatCount ? ` · 🚤 등록 낚시어선 ${props.boatCount}척` : '');
 
-  document.getElementById('tide-obscode').value = lastObsCode;
-
   loadWeather(lat, lng);
-  loadTide(lat, lng, lastObsCode);
+  loadTide(lat, lng);
   loadNearby(lat, lng);
 }
-
-document.getElementById('tide-obscode-apply').addEventListener('click', () => {
-  if (!currentSpot) return;
-  lastObsCode = document.getElementById('tide-obscode').value.trim();
-  loadTide(currentSpot.lat, currentSpot.lng, lastObsCode);
-});
 
 function loadWeather(lat, lng) {
   const el = document.getElementById('panel-weather');
@@ -918,6 +977,10 @@ function loadWeather(lat, lng) {
     .then((w) => {
       if (w.error) {
         el.textContent = '날씨 정보를 가져오지 못했습니다.';
+        return;
+      }
+      if (w.unsupported) {
+        el.innerHTML = `<div class="tide-badge tide-badge-empty">🌍 ${escapeHtml(w.message || '이 지역은 아직 날씨 정보를 지원하지 않습니다.')}</div>`;
         return;
       }
       const emoji = weatherEmoji(w.sky, w.precipitationType);
@@ -941,50 +1004,78 @@ function loadWeather(lat, lng) {
     .catch(() => { el.textContent = '날씨 정보를 가져오지 못했습니다.'; });
 }
 
-function loadTide(lat, lng, obsCode) {
+function loadTide(lat, lng) {
   const el = document.getElementById('panel-tide');
   el.textContent = '불러오는 중...';
   const qs = new URLSearchParams({ lat, lng });
-  if (obsCode) qs.set('obsCode', obsCode);
   fetch(`/api/tide?${qs.toString()}`)
     .then((r) => r.json())
     .then((t) => {
-      const lines = [];
-      if (t.mocked) lines.push(`⚠️ 예시 데이터 (${escapeHtml(t.message || 'KHOA 키 미설정')})`);
+      if (t.unsupported) {
+        el.innerHTML = `<div class="tide-badge tide-badge-empty">🌍 ${escapeHtml(t.message || '이 지역은 아직 물때 정보를 지원하지 않습니다.')}</div>`;
+        return;
+      }
+      const blocks = [];
+
+      // 안내/에러 배지 — 눈에 확실히 띄도록 날씨 배지와 같은 방식으로 색을 넣습니다.
+      if (t.mocked) {
+        blocks.push(`<div class="tide-badge tide-badge-mocked">⚠️ 예시 데이터 — ${escapeHtml(t.message || 'KHOA 키 미설정')}</div>`);
+      }
+      if (t.error) {
+        blocks.push(`<div class="tide-badge tide-badge-error">⛔ ${escapeHtml(t.error)}</div>`);
+      }
+      if (t.apiError) {
+        const { code, msg, hint } = t.apiError;
+        blocks.push(
+          `<div class="tide-badge tide-badge-error">KHOA 응답 코드: ${escapeHtml(code || '-')}${msg ? ` / ${escapeHtml(msg)}` : ''}` +
+            (hint ? `<br>→ ${escapeHtml(hint)}` : '') +
+            '</div>'
+        );
+      }
+
       if (t.station) {
-        lines.push(
+        blocks.push(
           `<div class="tide-hint">관측소: ${escapeHtml(t.station.name)} (${escapeHtml(t.station.code)})` +
             (t.station.distanceKm != null ? ` · 약 ${t.station.distanceKm}km` : '') +
             '</div>'
         );
       }
-      if (t.error) lines.push(`⚠️ ${escapeHtml(t.error)}`);
-      if (t.apiError) {
-        const { code, msg, hint } = t.apiError;
-        lines.push(
-          `<div class="tide-hint">KHOA 응답 코드: ${escapeHtml(code || '-')}${msg ? ` / ${escapeHtml(msg)}` : ''}` +
-            (hint ? `<br>→ ${escapeHtml(hint)}` : '') +
-            '</div>'
+      // 가장 가까운 관측소에 그날 예보가 없어서 다음으로 가까운 관측소 데이터를 대신 보여준
+      // 경우, 그 사실을 알려줍니다 (안 그러면 "왜 이 관측소가 뜨지?" 하고 헷갈릴 수 있어서).
+      if (t.fallbackFrom?.length) {
+        blocks.push(
+          `<div class="tide-hint">(가장 가까운 관측소(${t.fallbackFrom.map((n) => escapeHtml(n)).join(', ')})엔 이 날짜 예보가 없어서, 다음으로 가까운 관측소 값을 대신 보여드려요)</div>`
         );
       }
-      if (t.highTide) lines.push(`고조: ${t.highTide.join(', ')}`);
-      if (t.lowTide) lines.push(`저조: ${t.lowTide.join(', ')}`);
+
+      // 고조/저조 시각 — 실제 값이 있을 때는 크고 또렷한 색 칩으로 강조합니다.
+      if (t.highTide || t.lowTide) {
+        blocks.push('<div class="tide-grid">' +
+          (t.highTide ? `<div class="tide-stat tide-stat-high"><span class="tide-stat-label">🔺 고조</span><span class="tide-stat-value">${escapeHtml(t.highTide.join(', '))}</span></div>` : '') +
+          (t.lowTide ? `<div class="tide-stat tide-stat-low"><span class="tide-stat-label">🔻 저조</span><span class="tide-stat-value">${escapeHtml(t.lowTide.join(', '))}</span></div>` : '') +
+          '</div>');
+      }
+
+      if (!t.highTide && !t.lowTide && !t.error && !t.apiError) {
+        const triedText = t.triedStations?.length > 1
+          ? ` (가까운 관측소 ${t.triedStations.map((n) => escapeHtml(n)).join(', ')} 모두 확인해봤지만 이 날짜엔 예보가 없었어요)`
+          : '';
+        blocks.push(`<div class="tide-badge tide-badge-empty">이 날짜에는 근처 관측소의 고조/저조 예보 데이터가 없습니다.${triedText}</div>`);
+      }
+
       // 정상적으로 고조/저조가 나왔을 때는 원본 JSON 덤프까지 보여줄 필요가 없고, 값이 하나도
       // 안 나왔을 때만(원인 파악용 디버그 정보로) 보여줍니다.
       if (t.raw && !t.highTide && !t.lowTide) {
-        lines.push(`<pre class="tide-raw">${escapeHtml(JSON.stringify(t.raw, null, 2).slice(0, 800))}</pre>`);
+        blocks.push(`<pre class="tide-raw">${escapeHtml(JSON.stringify(t.raw, null, 2).slice(0, 800))}</pre>`);
       }
       if (t.rawResponsePreview) {
-        lines.push('<div class="tide-hint">KHOA 원본 응답 (디버그용):</div>');
-        lines.push(`<pre class="tide-raw">${escapeHtml(t.rawResponsePreview)}</pre>`);
-      }
-      if (!t.highTide && !t.lowTide && !t.error && !t.mocked) {
-        lines.push('이 날짜에는 이 관측소의 고조/저조 예보 데이터가 없습니다 (관측소가 맞는지, 날짜를 확인해보세요).');
+        blocks.push('<div class="tide-hint">KHOA 원본 응답 (디버그용):</div>');
+        blocks.push(`<pre class="tide-raw">${escapeHtml(t.rawResponsePreview)}</pre>`);
       }
       if (t.mocked) {
-        lines.push('<div class="tide-hint">서버 배포 주소 뒤에 <code>/api/status</code>를 붙여서 열어보면 KHOA_TIDE_KEY가 실제로 반영됐는지 확인할 수 있습니다.</div>');
+        blocks.push('<div class="tide-hint">서버 배포 주소 뒤에 <code>/api/status</code>를 붙여서 열어보면 KHOA_TIDE_KEY가 실제로 반영됐는지 확인할 수 있습니다.</div>');
       }
-      el.innerHTML = lines.map((l) => `<div>${l}</div>`).join('');
+      el.innerHTML = blocks.join('');
     })
     .catch(() => { el.textContent = '물때 정보를 가져오지 못했습니다.'; });
 }
@@ -1046,11 +1137,11 @@ function renderNearbyShopMarkers(lat, lng) {
             iconSize: [30, 30],
             iconAnchor: [15, 15],
           }),
-        })
-          .bindPopup(popupHtml)
-          .addTo(nearbyLayer);
-        shopMarker.on('mouseover', () => shopMarker.openPopup());
-        shopMarker.on('mouseout', () => shopMarker.closePopup());
+        }).addTo(nearbyLayer);
+        // 풍선말 안의 이름(링크)을 클릭할 수 있도록, 낚시포인트 마커와 같은 "마우스가 풍선말
+        // 안으로 들어가면 안 닫히는" 방식을 씁니다 (예전에는 mouseout에서 바로 닫아버려서
+        // 편의점/주유소 풍선말의 링크를 클릭하기 전에 닫히는 문제가 있었습니다).
+        bindHoverPopup(shopMarker, popupHtml);
       });
       return geojson;
     })

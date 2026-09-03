@@ -1,0 +1,3661 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "source": "OpenStreetMap (Geofabrik 추출 파일, leisure=fishing 태그) — ODbL 라이선스",
+    "extractFile": "japan-latest.osm.pbf",
+    "generatedAt": "2026-09-02T17:39:34.142Z",
+    "totalFetched": 192,
+    "featureCount": 192,
+    "note": "전국 단위 공식 공공데이터가 없어 OSM 크라우드소싱 데이터를 대신 사용했습니다. Overpass 실시간 API 대신 Geofabrik의 오프라인 추출 파일을 로컬에서 처리했습니다 (공개 Overpass 서버의 과부하/차단 문제 회피). 바다/민물 구분은 내륙현 여부 + 지점명 키워드로 판정한 근사치입니다."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.52308820000002,
+          35.002221600000006
+        ]
+      },
+      "properties": {
+        "name": "広見ヤナ",
+        "waterType": "sea",
+        "region": "아이치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6504841,
+          35.5874509
+        ]
+      },
+      "properties": {
+        "name": "等々力釣池",
+        "waterType": "freshwater",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.92641790000002,
+          37.4853569
+        ]
+      },
+      "properties": {
+        "name": "つり吉",
+        "waterType": "sea",
+        "region": "후쿠시마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.564398,
+          35.6528794
+        ]
+      },
+      "properties": {
+        "name": "도쿄도 낚시포인트",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.52251610000002,
+          35.0020426
+        ]
+      },
+      "properties": {
+        "name": "鮎やな場",
+        "waterType": "sea",
+        "region": "아이치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6177762,
+          35.7063149
+        ]
+      },
+      "properties": {
+        "name": "照楽園",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.097699,
+          35.076705000000004
+        ]
+      },
+      "properties": {
+        "name": "太海フラワー磯釣りセンター",
+        "waterType": "sea",
+        "region": "지바현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.65612180000002,
+          35.698158500000005
+        ]
+      },
+      "properties": {
+        "name": "半田丸",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.17577110000002,
+          35.805059
+        ]
+      },
+      "properties": {
+        "name": "奥多摩フィッシングセンター",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6433603,
+          35.402458100000004
+        ]
+      },
+      "properties": {
+        "name": "磯子海づり施設",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6945641,
+          35.4487614
+        ]
+      },
+      "properties": {
+        "name": "大黒海づり施設",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6873405,
+          35.428563100000005
+        ]
+      },
+      "properties": {
+        "name": "本牧海づり施設",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.18412510000002,
+          35.6568521
+        ]
+      },
+      "properties": {
+        "name": "辻野養魚場",
+        "waterType": "freshwater",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.3916882,
+          35.8808717
+        ]
+      },
+      "properties": {
+        "name": "狭山へら鮒センター",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.77718180000002,
+          35.1347808
+        ]
+      },
+      "properties": {
+        "name": "佐屋川温泉前寄場",
+        "waterType": "freshwater",
+        "region": "아이치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.7737858,
+          35.1366454
+        ]
+      },
+      "properties": {
+        "name": "佐屋川西の森寄場",
+        "waterType": "freshwater",
+        "region": "아이치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.6633013,
+          35.162538600000005
+        ]
+      },
+      "properties": {
+        "name": "三川フィッシュパーク",
+        "waterType": "freshwater",
+        "region": "기후현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.638662,
+          35.1980505
+        ]
+      },
+      "properties": {
+        "name": "朝日池",
+        "waterType": "freshwater",
+        "region": "기후현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.6528385,
+          35.180807300000005
+        ]
+      },
+      "properties": {
+        "name": "つつじ池",
+        "waterType": "freshwater",
+        "region": "기후현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.669395,
+          35.2848854
+        ]
+      },
+      "properties": {
+        "name": "勝賀大池",
+        "waterType": "freshwater",
+        "region": "기후현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.2056051,
+          35.1185929
+        ]
+      },
+      "properties": {
+        "name": "ひだ池",
+        "waterType": "freshwater",
+        "region": "아이치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.64168420000001,
+          35.2004502
+        ]
+      },
+      "properties": {
+        "name": "五町八幡大池",
+        "waterType": "freshwater",
+        "region": "기후현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.67244580000002,
+          35.3037457
+        ]
+      },
+      "properties": {
+        "name": "堀津かっぱ池",
+        "waterType": "freshwater",
+        "region": "기후현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.1683561,
+          35.5612773
+        ]
+      },
+      "properties": {
+        "name": "가나가와현 낚시포인트",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.31312200000002,
+          35.573461
+        ]
+      },
+      "properties": {
+        "name": "釣り堀",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.1854319,
+          35.7503479
+        ]
+      },
+      "properties": {
+        "name": "宝沢鱒釣場",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.208311,
+          35.7647526
+        ]
+      },
+      "properties": {
+        "name": "自然休養村 さかな園",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.6213232,
+          35.2710376
+        ]
+      },
+      "properties": {
+        "name": "大宮へらの里",
+        "waterType": "freshwater",
+        "region": "기후현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.439784,
+          35.681844000000005
+        ]
+      },
+      "properties": {
+        "name": "タックルベリー",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.0956073,
+          35.8134384
+        ]
+      },
+      "properties": {
+        "name": "氷川国際ます釣場",
+        "waterType": "freshwater",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.65462240000002,
+          35.195895400000005
+        ]
+      },
+      "properties": {
+        "name": "札野池",
+        "waterType": "freshwater",
+        "region": "기후현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.1647744,
+          35.827246900000006
+        ]
+      },
+      "properties": {
+        "name": "大丹波国際ます釣場",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          142.6953104,
+          44.1128645
+        ]
+      },
+      "properties": {
+        "name": "釣り堀",
+        "waterType": "sea",
+        "region": "홋카이도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.294787,
+          35.771818
+        ]
+      },
+      "properties": {
+        "name": "多摩川養鱒",
+        "waterType": "freshwater",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0468269,
+          37.666712600000004
+        ]
+      },
+      "properties": {
+        "name": "STELLA磐遊",
+        "waterType": "sea",
+        "region": "후쿠시마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.9017174,
+          34.062815900000004
+        ]
+      },
+      "properties": {
+        "name": "下関フィッシングパーク",
+        "waterType": "sea",
+        "region": "야마구치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.9024172,
+          37.4843691
+        ]
+      },
+      "properties": {
+        "name": "アミューズパーク",
+        "waterType": "sea",
+        "region": "후쿠시마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.9985107,
+          35.211374400000004
+        ]
+      },
+      "properties": {
+        "name": "아이치현 낚시포인트",
+        "waterType": "sea",
+        "region": "아이치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.62511560000002,
+          35.1618609
+        ]
+      },
+      "properties": {
+        "name": "つりぶね　丸十丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.62455350000002,
+          35.1619149
+        ]
+      },
+      "properties": {
+        "name": "仕立て　釣り船　太平丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.62468900000002,
+          35.1616268
+        ]
+      },
+      "properties": {
+        "name": "新谷丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.7043932,
+          34.8153249
+        ]
+      },
+      "properties": {
+        "name": "王仁 釣池 センター",
+        "waterType": "freshwater",
+        "region": "오사카부",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.8284352,
+          34.3093061
+        ]
+      },
+      "properties": {
+        "name": "賢島フィッシングパーク 海遊苑",
+        "waterType": "sea",
+        "region": "미에현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.60273750000002,
+          34.9052293
+        ]
+      },
+      "properties": {
+        "name": "川魚料理",
+        "waterType": "freshwater",
+        "region": "오사카부",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.9642861,
+          33.9280747
+        ]
+      },
+      "properties": {
+        "name": "フィッシングパーク光",
+        "waterType": "sea",
+        "region": "야마구치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4793191,
+          36.1621832
+        ]
+      },
+      "properties": {
+        "name": "室内釣り堀 誠",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.5039768,
+          34.9926273
+        ]
+      },
+      "properties": {
+        "name": "泰隆丸",
+        "waterType": "sea",
+        "region": "시즈오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6413206,
+          36.055440700000005
+        ]
+      },
+      "properties": {
+        "name": "自由釣場",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6386679,
+          36.0573478
+        ]
+      },
+      "properties": {
+        "name": "有料釣場",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.90188360000002,
+          34.148056600000004
+        ]
+      },
+      "properties": {
+        "name": "観光つり堀場",
+        "waterType": "sea",
+        "region": "야마구치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4993238,
+          36.1327635
+        ]
+      },
+      "properties": {
+        "name": "釣堀",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4987766,
+          36.132921700000004
+        ]
+      },
+      "properties": {
+        "name": "釣堀",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.60152430000002,
+          36.166479800000005
+        ]
+      },
+      "properties": {
+        "name": "つり処 椎の木湖",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.5813007,
+          36.1718738
+        ]
+      },
+      "properties": {
+        "name": "羽生吉沼",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.5904816,
+          36.1600454
+        ]
+      },
+      "properties": {
+        "name": "加須吉沼",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.0761517,
+          35.825183700000004
+        ]
+      },
+      "properties": {
+        "name": "TOKYOトラウトカントリー",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.500346,
+          35.5650982
+        ]
+      },
+      "properties": {
+        "name": "釣り堀",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.5671882,
+          35.7404968
+        ]
+      },
+      "properties": {
+        "name": "保谷フィッシングセンター",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.76523790000002,
+          35.8676879
+        ]
+      },
+      "properties": {
+        "name": "つり堀中の島センター",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.0043879,
+          35.7944942
+        ]
+      },
+      "properties": {
+        "name": "峰谷渓流釣場",
+        "waterType": "freshwater",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.95111920000002,
+          35.7572698
+        ]
+      },
+      "properties": {
+        "name": "小菅トラウトガーデン",
+        "waterType": "freshwater",
+        "region": "야마나시현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.94594790000002,
+          35.7589915
+        ]
+      },
+      "properties": {
+        "name": "小菅村フィッシングビレッジ",
+        "waterType": "freshwater",
+        "region": "야마나시현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.76903910000001,
+          34.579900900000005
+        ]
+      },
+      "properties": {
+        "name": "つり堀小太郎",
+        "waterType": "sea",
+        "region": "오카야마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.54874890000002,
+          39.1834737
+        ]
+      },
+      "properties": {
+        "name": "海づり公園",
+        "waterType": "sea",
+        "region": "아키타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0394061,
+          37.0639817
+        ]
+      },
+      "properties": {
+        "name": "つり天国",
+        "waterType": "freshwater",
+        "region": "도치기현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0363374,
+          37.0551442
+        ]
+      },
+      "properties": {
+        "name": "つり堀 ニュー池田",
+        "waterType": "freshwater",
+        "region": "도치기현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.7335279,
+          34.767507
+        ]
+      },
+      "properties": {
+        "name": "姫路市立遊漁センター",
+        "waterType": "sea",
+        "region": "효고현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.67906620000002,
+          35.3006065
+        ]
+      },
+      "properties": {
+        "name": "蒜山塩釜養魚センター",
+        "waterType": "sea",
+        "region": "오카야마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.47834640000002,
+          35.119895400000004
+        ]
+      },
+      "properties": {
+        "name": "아이치현 낚시포인트",
+        "waterType": "sea",
+        "region": "아이치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.1494744,
+          36.0983688
+        ]
+      },
+      "properties": {
+        "name": "風布にじます釣り堀センター",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.594491,
+          34.6809318
+        ]
+      },
+      "properties": {
+        "name": "시즈오카현 낚시포인트",
+        "waterType": "sea",
+        "region": "시즈오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.59348490000002,
+          34.6812874
+        ]
+      },
+      "properties": {
+        "name": "시즈오카현 낚시포인트",
+        "waterType": "sea",
+        "region": "시즈오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.59248300000002,
+          34.6816422
+        ]
+      },
+      "properties": {
+        "name": "시즈오카현 낚시포인트",
+        "waterType": "sea",
+        "region": "시즈오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.5905758,
+          34.682317600000005
+        ]
+      },
+      "properties": {
+        "name": "시즈오카현 낚시포인트",
+        "waterType": "sea",
+        "region": "시즈오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.59148240000002,
+          34.6819951
+        ]
+      },
+      "properties": {
+        "name": "시즈오카현 낚시포인트",
+        "waterType": "sea",
+        "region": "시즈오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.09410200000002,
+          33.5746041
+        ]
+      },
+      "properties": {
+        "name": "福の浦漁港",
+        "waterType": "sea",
+        "region": "사가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.1065757,
+          33.587561400000006
+        ]
+      },
+      "properties": {
+        "name": "芥屋漁港",
+        "waterType": "sea",
+        "region": "사가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.1582434,
+          33.6145954
+        ]
+      },
+      "properties": {
+        "name": "野北漁港",
+        "waterType": "sea",
+        "region": "사가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.207088,
+          33.6521981
+        ]
+      },
+      "properties": {
+        "name": "西の浦漁港",
+        "waterType": "sea",
+        "region": "후쿠오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.232439,
+          33.6420053
+        ]
+      },
+      "properties": {
+        "name": "唐泊漁港",
+        "waterType": "sea",
+        "region": "후쿠오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.1197444,
+          33.5730626
+        ]
+      },
+      "properties": {
+        "name": "岐志漁港",
+        "waterType": "sea",
+        "region": "사가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.1270915,
+          33.5541244
+        ]
+      },
+      "properties": {
+        "name": "船越漁港",
+        "waterType": "sea",
+        "region": "사가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.1594265,
+          33.5490276
+        ]
+      },
+      "properties": {
+        "name": "加布里漁港",
+        "waterType": "sea",
+        "region": "후쿠오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.1307396,
+          33.566580200000004
+        ]
+      },
+      "properties": {
+        "name": "新町漁港",
+        "waterType": "sea",
+        "region": "사가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.1306956,
+          33.5225126
+        ]
+      },
+      "properties": {
+        "name": "深江漁港",
+        "waterType": "sea",
+        "region": "후쿠오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.1039929,
+          33.512973
+        ]
+      },
+      "properties": {
+        "name": "大入漁港",
+        "waterType": "sea",
+        "region": "사가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.0847467,
+          33.5062415
+        ]
+      },
+      "properties": {
+        "name": "福吉漁港",
+        "waterType": "sea",
+        "region": "사가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.0464818,
+          33.493316300000004
+        ]
+      },
+      "properties": {
+        "name": "鹿家漁港",
+        "waterType": "sea",
+        "region": "사가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.3262741,
+          33.5988397
+        ]
+      },
+      "properties": {
+        "name": "姪浜漁港",
+        "waterType": "sea",
+        "region": "후쿠오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.979612,
+          35.911199100000005
+        ]
+      },
+      "properties": {
+        "name": "大血川溪流観光釣場",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.65411210000002,
+          34.410282900000006
+        ]
+      },
+      "properties": {
+        "name": "千早川マス釣り場",
+        "waterType": "freshwater",
+        "region": "오사카부",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.47826320000001,
+          39.4393801
+        ]
+      },
+      "properties": {
+        "name": "釣り公園",
+        "waterType": "sea",
+        "region": "아키타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6026253,
+          36.2155975
+        ]
+      },
+      "properties": {
+        "name": "군마현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "군마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.82973950000002,
+          35.6135998
+        ]
+      },
+      "properties": {
+        "name": "若洲海浜公園 海釣施設",
+        "waterType": "sea",
+        "region": "지바현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.8317522,
+          35.617184200000004
+        ]
+      },
+      "properties": {
+        "name": "지바현 낚시포인트",
+        "waterType": "sea",
+        "region": "지바현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.59151830000002,
+          34.0559516
+        ]
+      },
+      "properties": {
+        "name": "釣ってみんでフィッシング",
+        "waterType": "sea",
+        "region": "도쿠시마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.6895881,
+          39.894553200000004
+        ]
+      },
+      "properties": {
+        "name": "釣り堀",
+        "waterType": "sea",
+        "region": "아키타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.06219190000002,
+          39.6903839
+        ]
+      },
+      "properties": {
+        "name": "아키타현 낚시포인트",
+        "waterType": "sea",
+        "region": "아키타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0613336,
+          39.6918761
+        ]
+      },
+      "properties": {
+        "name": "아키타현 낚시포인트",
+        "waterType": "sea",
+        "region": "아키타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.06317900000002,
+          39.6926563
+        ]
+      },
+      "properties": {
+        "name": "아키타현 낚시포인트",
+        "waterType": "sea",
+        "region": "아키타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0606309,
+          39.6898575
+        ]
+      },
+      "properties": {
+        "name": "아키타현 낚시포인트",
+        "waterType": "sea",
+        "region": "아키타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.59968360000002,
+          35.5685133
+        ]
+      },
+      "properties": {
+        "name": "右左口の里市営つり堀",
+        "waterType": "freshwater",
+        "region": "야마나시현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.73164,
+          35.262594400000005
+        ]
+      },
+      "properties": {
+        "name": "吉明丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7315555,
+          35.2626672
+        ]
+      },
+      "properties": {
+        "name": "松栄丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7313805,
+          35.2627466
+        ]
+      },
+      "properties": {
+        "name": "海福丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7313248,
+          35.262809600000004
+        ]
+      },
+      "properties": {
+        "name": "宏二郎丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.731062,
+          35.2631753
+        ]
+      },
+      "properties": {
+        "name": "高取丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7309788,
+          35.2635378
+        ]
+      },
+      "properties": {
+        "name": "関義丸釣船店",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7324715,
+          35.2618098
+        ]
+      },
+      "properties": {
+        "name": "本牧屋広国丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.73240040000002,
+          35.2618323
+        ]
+      },
+      "properties": {
+        "name": "政信丸",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.73212750000002,
+          35.2621181
+        ]
+      },
+      "properties": {
+        "name": "広川丸",
+        "waterType": "freshwater",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.1051185,
+          37.0070252
+        ]
+      },
+      "properties": {
+        "name": "那須高原ルアーフィールド",
+        "waterType": "freshwater",
+        "region": "도치기현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.2625504,
+          35.7185635
+        ]
+      },
+      "properties": {
+        "name": "FISH UP秋川湖",
+        "waterType": "freshwater",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.8350504,
+          35.9421879
+        ]
+      },
+      "properties": {
+        "name": "トラウトオン!入川",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.8013933,
+          35.994554300000004
+        ]
+      },
+      "properties": {
+        "name": "中津川渓流釣り場",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.24053500000002,
+          36.369205300000004
+        ]
+      },
+      "properties": {
+        "name": "군마현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "군마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.8625672,
+          43.038397700000004
+        ]
+      },
+      "properties": {
+        "name": "AKAIGAWA TOMO PLAYPARK",
+        "waterType": "sea",
+        "region": "홋카이도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.578482,
+          35.895073000000004
+        ]
+      },
+      "properties": {
+        "name": "つり堀弁天閣",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.5244527,
+          39.4277785
+        ]
+      },
+      "properties": {
+        "name": "水遊び場",
+        "waterType": "sea",
+        "region": "이와테현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.8508559,
+          35.0865998
+        ]
+      },
+      "properties": {
+        "name": "시즈오카현 낚시포인트",
+        "waterType": "sea",
+        "region": "시즈오카현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.7015668,
+          34.229974600000006
+        ]
+      },
+      "properties": {
+        "name": "효고현 낚시포인트",
+        "waterType": "sea",
+        "region": "효고현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.8958744,
+          35.7478235
+        ]
+      },
+      "properties": {
+        "name": "도쿄도 낚시포인트",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0971524,
+          35.075690900000005
+        ]
+      },
+      "properties": {
+        "name": "太海フラワー磯釣りセンター 釣り堀",
+        "waterType": "sea",
+        "region": "지바현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.32911420000002,
+          35.8554428
+        ]
+      },
+      "properties": {
+        "name": "大滝湧水つり堀",
+        "waterType": "freshwater",
+        "region": "야마나시현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.3996448,
+          36.1161128
+        ]
+      },
+      "properties": {
+        "name": "사이타마현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.2711509,
+          34.4861473
+        ]
+      },
+      "properties": {
+        "name": "魚末あまごセンター",
+        "waterType": "sea",
+        "region": "미에현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.1125524,
+          35.5903427
+        ]
+      },
+      "properties": {
+        "name": "瀬崎漁港",
+        "waterType": "sea",
+        "region": "시마네현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0449582,
+          35.8607749
+        ]
+      },
+      "properties": {
+        "name": "지바현 낚시포인트",
+        "waterType": "sea",
+        "region": "지바현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.03086810000002,
+          35.860101
+        ]
+      },
+      "properties": {
+        "name": "지바현 낚시포인트",
+        "waterType": "sea",
+        "region": "지바현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.05289860000002,
+          35.465715200000005
+        ]
+      },
+      "properties": {
+        "name": "白潟公園",
+        "waterType": "sea",
+        "region": "시마네현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.04758520000001,
+          35.466231300000004
+        ]
+      },
+      "properties": {
+        "name": "千鳥南公園",
+        "waterType": "sea",
+        "region": "시마네현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.05012190000002,
+          35.3532968
+        ]
+      },
+      "properties": {
+        "name": "フィッシングパーク高島の泉",
+        "waterType": "freshwater",
+        "region": "시가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7359915,
+          35.678901100000004
+        ]
+      },
+      "properties": {
+        "name": "도쿄도 낚시포인트",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.2873147,
+          43.1919564
+        ]
+      },
+      "properties": {
+        "name": "石狩新港　樽川埠頭",
+        "waterType": "freshwater",
+        "region": "홋카이도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.84174570000002,
+          35.607555000000005
+        ]
+      },
+      "properties": {
+        "name": "후쿠이현 낚시포인트",
+        "waterType": "sea",
+        "region": "후쿠이현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6493962,
+          36.2047048
+        ]
+      },
+      "properties": {
+        "name": "사이타마현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.59580350000002,
+          35.7608813
+        ]
+      },
+      "properties": {
+        "name": "旭市長熊釣堀センター",
+        "waterType": "sea",
+        "region": "지바현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.9126564,
+          35.7007534
+        ]
+      },
+      "properties": {
+        "name": "つりぼり金ちゃん",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.4144986,
+          36.8671905
+        ]
+      },
+      "properties": {
+        "name": "도야마현 낚시포인트",
+        "waterType": "sea",
+        "region": "도야마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.16293430000002,
+          37.1328015
+        ]
+      },
+      "properties": {
+        "name": "ます釣り公園",
+        "waterType": "sea",
+        "region": "후쿠시마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.708494,
+          35.3670701
+        ]
+      },
+      "properties": {
+        "name": "清流の里 車屋",
+        "waterType": "freshwater",
+        "region": "나가노현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.1489257,
+          35.876492400000004
+        ]
+      },
+      "properties": {
+        "name": "有間渓谷観光釣り場",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.078166,
+          35.8187933
+        ]
+      },
+      "properties": {
+        "name": "大明神釣堀センター",
+        "waterType": "freshwater",
+        "region": "나가노현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.3954598,
+          35.588592500000004
+        ]
+      },
+      "properties": {
+        "name": "常盤つり堀センター",
+        "waterType": "sea",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.466734,
+          34.0323514
+        ]
+      },
+      "properties": {
+        "name": "大海漁港",
+        "waterType": "sea",
+        "region": "야마구치현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.0999669,
+          35.8953913
+        ]
+      },
+      "properties": {
+        "name": "浦山渓流フィッシングセンター",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.9490603,
+          36.2020508
+        ]
+      },
+      "properties": {
+        "name": "白石つり掘金魚園",
+        "waterType": "sea",
+        "region": "이바라키현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.4304802,
+          41.2026424
+        ]
+      },
+      "properties": {
+        "name": "아오모리현 낚시포인트",
+        "waterType": "sea",
+        "region": "아오모리현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.47447770000002,
+          35.2989078
+        ]
+      },
+      "properties": {
+        "name": "燈籠下",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4748414,
+          35.2996858
+        ]
+      },
+      "properties": {
+        "name": "ニホンポックリ",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.47642670000002,
+          35.300038400000005
+        ]
+      },
+      "properties": {
+        "name": "裂磯",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4766639,
+          35.3002823
+        ]
+      },
+      "properties": {
+        "name": "木喰",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.47444910000002,
+          35.2991139
+        ]
+      },
+      "properties": {
+        "name": "稚児ヶ淵",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4743874,
+          35.2996038
+        ]
+      },
+      "properties": {
+        "name": "ブッカケ",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4747072,
+          35.2985951
+        ]
+      },
+      "properties": {
+        "name": "下り口",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4752819,
+          35.2982445
+        ]
+      },
+      "properties": {
+        "name": "親不知",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4753789,
+          35.2980521
+        ]
+      },
+      "properties": {
+        "name": "魚板石",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4755931,
+          35.297804400000004
+        ]
+      },
+      "properties": {
+        "name": "寒鯛場",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4758734,
+          35.297896200000004
+        ]
+      },
+      "properties": {
+        "name": "天王前",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4764591,
+          35.298194900000006
+        ]
+      },
+      "properties": {
+        "name": "籠場",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4766147,
+          35.2981132
+        ]
+      },
+      "properties": {
+        "name": "竜池窟",
+        "waterType": "freshwater",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4775836,
+          35.2982729
+        ]
+      },
+      "properties": {
+        "name": "亀甲岩",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.47787490000002,
+          35.298697700000005
+        ]
+      },
+      "properties": {
+        "name": "おっこち場",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4780337,
+          35.2987644
+        ]
+      },
+      "properties": {
+        "name": "ムコウジンイチ",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4785444,
+          35.2983266
+        ]
+      },
+      "properties": {
+        "name": "トウノゴシ",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4796494,
+          35.298028800000004
+        ]
+      },
+      "properties": {
+        "name": "鵜ノ鼻",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4809194,
+          35.298031900000005
+        ]
+      },
+      "properties": {
+        "name": "水道口",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4809117,
+          35.2982499
+        ]
+      },
+      "properties": {
+        "name": "峰ヶ須",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4813837,
+          35.2977354
+        ]
+      },
+      "properties": {
+        "name": "釜の口",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4815768,
+          35.29795
+        ]
+      },
+      "properties": {
+        "name": "おか磯",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.48036000000002,
+          35.3023753
+        ]
+      },
+      "properties": {
+        "name": "小浜",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.5859102,
+          36.6254719
+        ]
+      },
+      "properties": {
+        "name": "西楽園",
+        "waterType": "freshwater",
+        "region": "군마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0427907,
+          35.628733000000004
+        ]
+      },
+      "properties": {
+        "name": "지바현 낚시포인트",
+        "waterType": "sea",
+        "region": "지바현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.33142850000002,
+          36.2407003
+        ]
+      },
+      "properties": {
+        "name": "군마현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "군마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.900436,
+          36.9422562
+        ]
+      },
+      "properties": {
+        "name": "アクアマリンえっぐ 釣り場",
+        "waterType": "sea",
+        "region": "후쿠시마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.26520620000002,
+          35.437851900000005
+        ]
+      },
+      "properties": {
+        "name": "日向渓谷マス釣り場",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.4130596,
+          42.9321349
+        ]
+      },
+      "properties": {
+        "name": "藍鱗",
+        "waterType": "sea",
+        "region": "홋카이도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0328287,
+          36.6790092
+        ]
+      },
+      "properties": {
+        "name": "도치기현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "도치기현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.95441300000002,
+          36.5537511
+        ]
+      },
+      "properties": {
+        "name": "도치기현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "도치기현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.3393656,
+          35.3002417
+        ]
+      },
+      "properties": {
+        "name": "시가현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "시가현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.2223439,
+          35.6744697
+        ]
+      },
+      "properties": {
+        "name": "北浅川恩方ます釣場",
+        "waterType": "freshwater",
+        "region": "도쿄도",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.26018140000002,
+          35.4126022
+        ]
+      },
+      "properties": {
+        "name": "大山フィッシングセンター",
+        "waterType": "sea",
+        "region": "가나가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.1652735,
+          34.614015900000005
+        ]
+      },
+      "properties": {
+        "name": "가가와현 낚시포인트",
+        "waterType": "sea",
+        "region": "가가와현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.1716934,
+          34.6524349
+        ]
+      },
+      "properties": {
+        "name": "오카야마현 낚시포인트",
+        "waterType": "sea",
+        "region": "오카야마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.2642676,
+          37.9940463
+        ]
+      },
+      "properties": {
+        "name": "니가타현 낚시포인트",
+        "waterType": "sea",
+        "region": "니가타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.2413502,
+          38.006846
+        ]
+      },
+      "properties": {
+        "name": "니가타현 낚시포인트",
+        "waterType": "sea",
+        "region": "니가타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.2696445,
+          37.9937083
+        ]
+      },
+      "properties": {
+        "name": "니가타현 낚시포인트",
+        "waterType": "sea",
+        "region": "니가타현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.2445235,
+          34.7911409
+        ]
+      },
+      "properties": {
+        "name": "有馬ます池",
+        "waterType": "freshwater",
+        "region": "효고현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.48606320000002,
+          36.2619108
+        ]
+      },
+      "properties": {
+        "name": "군마현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "군마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4778684,
+          35.958787300000004
+        ]
+      },
+      "properties": {
+        "name": "사이타마현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4531475,
+          35.9785069
+        ]
+      },
+      "properties": {
+        "name": "사이타마현 낚시포인트",
+        "waterType": "freshwater",
+        "region": "사이타마현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.1653099,
+          34.6895639
+        ]
+      },
+      "properties": {
+        "name": "효고현 낚시포인트",
+        "waterType": "sea",
+        "region": "효고현",
+        "species": [],
+        "facilityType": null,
+        "source": "OpenStreetMap contributors (ODbL) — leisure=fishing",
+        "country": "JP"
+      }
+    }
+  ]
+}

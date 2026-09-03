@@ -21,41 +21,124 @@ app.use(express.static(path.join(__dirname, 'public')));
 // data/spots.geojson 이 있으면 그걸(= 공식 데이터로 가져온 전국 데이터) 우선 사용하고,
 // 없으면 샘플 데이터(data/spots.sample.geojson)로 대체합니다.
 // 공식 데이터 적용 방법: README.md 및 data/scripts/import_standard_csv.js 참고.
+//
+// data/boat_spots.geojson(`npm run geocode:boats`)과 data/japan_spots.geojson
+// (`npm run fetch:japan`)은 둘 다 선택적으로 생성되는 파일이라, 있으면 병합하고 없으면
+// 조용히 건너뜁니다.
+function readGeojsonSafe(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (err) {
+    console.error(`${filePath} 파싱 실패, 이 파일은 건너뜁니다:`, err);
+    return null;
+  }
+}
+
 app.get('/api/spots', (req, res) => {
   const officialPath = path.join(__dirname, 'data', 'spots.geojson');
   const samplePath = path.join(__dirname, 'data', 'spots.sample.geojson');
-  const boatPath = path.join(__dirname, 'data', 'boat_spots.geojson');
   const file = fs.existsSync(officialPath) ? officialPath : samplePath;
 
   res.setHeader('Content-Type', 'application/geo+json; charset=utf-8');
 
-  // data/boat_spots.geojson은 `npm run geocode:boats`를 실행해야 생기는 선택적 파일입니다.
-  // 아직 안 만들었으면(파일이 없으면) 기존처럼 그대로 스트리밍합니다.
-  if (!fs.existsSync(boatPath)) {
+  const boats = readGeojsonSafe(path.join(__dirname, 'data', 'boat_spots.geojson'));
+  const japan = readGeojsonSafe(path.join(__dirname, 'data', 'japan_spots.geojson'));
+
+  if (!boats && !japan) {
     return fs.createReadStream(file).pipe(res);
   }
 
   try {
     const base = JSON.parse(fs.readFileSync(file, 'utf8'));
-    const boats = JSON.parse(fs.readFileSync(boatPath, 'utf8'));
-    base.features = [...(base.features || []), ...(boats.features || [])];
+    base.features = [
+      ...(base.features || []),
+      ...(boats?.features || []),
+      ...(japan?.features || []),
+    ];
     res.json(base);
   } catch (err) {
-    console.error('배낚시 데이터 병합 실패, 기본 데이터만 반환합니다:', err);
+    console.error('낚시포인트 데이터 병합 실패, 기본 데이터만 반환합니다:', err);
     fs.createReadStream(file).pipe(res);
   }
 });
 
 // ---------------------------------------------------------------------------
-// 1-1) 시/도 경계(폴리곤) — KOSTAT 2013 행정구역 경계
-// 출처: https://github.com/southkorea/southkorea-maps (KOSTAT, "free to share or remix")
-// mapshaper로 3%까지 단순화(28MB -> ~470KB)하여 웹에서 바로 쓸 수 있게 가공했습니다.
+// 1-1) 시/도(또는 도도부현) 경계(폴리곤)
+// - 한국: KOSTAT 2013 행정구역 경계. 출처: https://github.com/southkorea/southkorea-maps
+//   (KOSTAT, "free to share or remix"). mapshaper로 3%까지 단순화(28MB -> ~470KB).
+// - 일본: dataofjapan/land (https://github.com/dataofjapan/land)의 47개 도도부현 경계.
+//   마찬가지로 mapshaper 3% 단순화(13MB -> ~130KB), 표시용 이름은 한글 표기로 붙였습니다
+//   (data/boundaries/japan-prefectures.geo.json). 일본 파일이 없으면 한국 경계만 내려줍니다
+//   (기존 동작과 100% 동일하게 유지).
 // ---------------------------------------------------------------------------
 app.get('/api/boundaries/provinces', (req, res) => {
-  const file = path.join(__dirname, 'data', 'boundaries', 'skorea-provinces.geo.json');
+  const koreaPath = path.join(__dirname, 'data', 'boundaries', 'skorea-provinces.geo.json');
+  const japanPath = path.join(__dirname, 'data', 'boundaries', 'japan-prefectures.geo.json');
   res.setHeader('Content-Type', 'application/geo+json; charset=utf-8');
-  fs.createReadStream(file).pipe(res);
+
+  const japan = readGeojsonSafe(japanPath);
+  if (!japan) {
+    return fs.createReadStream(koreaPath).pipe(res);
+  }
+
+  try {
+    const korea = JSON.parse(fs.readFileSync(koreaPath, 'utf8'));
+    res.json({
+      type: 'FeatureCollection',
+      features: [...(korea.features || []), ...(japan.features || [])],
+    });
+  } catch (err) {
+    console.error('경계 데이터 병합 실패, 한국 경계만 반환합니다:', err);
+    fs.createReadStream(koreaPath).pipe(res);
+  }
 });
+
+// 기상청(날씨)·국립해양조사원(물때)·카카오 로컬(주변 편의점) API는 전부 대한민국 영토만
+// 지원합니다. 일본 낚시포인트가 추가되면서 이 범위 밖 좌표로 이 API들을 호출하면 엉뚱한
+// 격자/관측소 값이 나오거나 빈 결과가 나올 수 있어서, 대한민국 영역을 벗어나면 API를 호출하지
+// 않고 "지원 범위 밖" 안내를 보여줍니다.
+//
+// ⚠️ 단순 위경도 사각 범위(bbox)로는 이걸 구분할 수 없습니다 — 대마도(일본 규슈 인근)와 부산이
+// 위경도상 아주 가깝고, 규슈 지역 경도가 제주/경남 경도와 겹쳐서, 사각 범위로 하면 일본 규슈
+// 지점이 "대한민국 범위 안"으로 잘못 판정됩니다. 그래서 실제 대한민국 시/도 폴리곤(이미
+// /api/boundaries/provinces에 쓰는 그 파일) 안에 점이 실제로 들어있는지로 정확히 판정합니다.
+function pointInRing(point, ring) {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    const intersects = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+function pointInPolygonCoords(point, rings) {
+  if (!pointInRing(point, rings[0])) return false;
+  for (let k = 1; k < rings.length; k++) {
+    if (pointInRing(point, rings[k])) return false;
+  }
+  return true;
+}
+function pointInGeometry(point, geometry) {
+  if (geometry.type === 'Polygon') return pointInPolygonCoords(point, geometry.coordinates);
+  if (geometry.type === 'MultiPolygon') return geometry.coordinates.some((poly) => pointInPolygonCoords(point, poly));
+  return false;
+}
+
+const KOREA_PROVINCES = readGeojsonSafe(path.join(__dirname, 'data', 'boundaries', 'skorea-provinces.geo.json'));
+
+// 참고: 경계 데이터가 3% 단순화돼 있어서, 해안선 바로 위 낚시포인트가 아주 드물게 폴리곤
+// 바깥으로 살짝 벗어나 있을 수 있습니다. 하지만 여기서는 "혹시 모르니 가까운 쪽으로
+// 넘겨준다" 같은 보정을 일부러 안 합니다 — 그렇게 하면 대마도처럼 실제로 가까운 일본 지점을
+// 다시 대한민국으로 잘못 판정할 위험이 더 커지기 때문에, 폴리곤 안에 정확히 없으면 "지원
+// 범위 밖"으로 처리하는 쪽이 더 안전한 실패 방식입니다.
+function isInKorea(lat, lon) {
+  if (!KOREA_PROVINCES) return true; // 경계 파일을 못 읽었으면(있을 수 없는 상황) 기존 동작 유지
+  const point = [lon, lat];
+  return KOREA_PROVINCES.features.some((f) => pointInGeometry(point, f.geometry));
+}
 
 // ---------------------------------------------------------------------------
 // 2) 날씨: 기상청_단기예보 조회서비스 (data.go.kr)
@@ -138,6 +221,13 @@ app.get('/api/weather', async (req, res) => {
     const lon = parseFloat(req.query.lng ?? req.query.lon);
     if (Number.isNaN(lat) || Number.isNaN(lon)) {
       return res.status(400).json({ error: 'lat, lng 쿼리 파라미터가 필요합니다.' });
+    }
+
+    if (!isInKorea(lat, lon)) {
+      return res.json({
+        unsupported: true,
+        message: '기상청 단기예보는 대한민국 영토만 지원해서, 이 지점은 날씨 정보를 제공할 수 없습니다.',
+      });
     }
 
     const key = process.env.KMA_FORECAST_KEY;
@@ -229,75 +319,144 @@ app.get('/api/weather', async (req, res) => {
 // 출처: data.go.kr "국립해양조사원_조위관측소 운영 현황_20250818" (사용자가 직접 내려받아
 // 제공, 로그인 불필요 공개 파일데이터). 폐지되어 새 코드로 대체된 구(舊) 관측소
 // (위도(구)/가덕도(구)/안흥(구)/포항(과거)/포항_구)는 목록에서 제외했습니다.
-const TIDE_STATIONS = [
-  { code: 'IE_0060', name: '이어도', lat: 32.12277778, lon: 125.1822222 },
-  { code: 'IE_0062', name: '옹진소청초', lat: 37.423056, lon: 124.738056 },
-  { code: 'IE_0061', name: '신안가거초', lat: 33.941944, lon: 124.592778 },
-  { code: 'DT_0002', name: '평택', lat: 36.966944, lon: 126.822778 },
-  { code: 'DT_0003', name: '영광', lat: 35.426111, lon: 126.420556 },
-  { code: 'DT_0004', name: '제주', lat: 33.5275, lon: 126.543056 },
-  { code: 'DT_0005', name: '부산', lat: 35.096389, lon: 129.035278 },
-  { code: 'DT_0006', name: '묵호', lat: 37.550278, lon: 129.116389 },
-  { code: 'DT_0007', name: '목포', lat: 34.779722, lon: 126.375556 },
-  { code: 'DT_0008', name: '안산', lat: 37.192222, lon: 126.647222 },
-  { code: 'DT_0010', name: '서귀포', lat: 33.24, lon: 126.561667 },
-  { code: 'DT_0011', name: '후포', lat: 36.6775, lon: 129.453056 },
-  { code: 'DT_0012', name: '속초', lat: 38.207222, lon: 128.594167 },
-  { code: 'DT_0013', name: '울릉도', lat: 37.491389, lon: 130.913611 },
-  { code: 'DT_0016', name: '여수', lat: 34.747222, lon: 127.765556 },
-  { code: 'DT_0017', name: '대산', lat: 37.0075, lon: 126.352778 },
-  { code: 'DT_0018', name: '군산', lat: 35.975556, lon: 126.563056 },
-  { code: 'DT_0021', name: '추자도', lat: 33.961944, lon: 126.300278 },
-  { code: 'DT_0023', name: '모슬포', lat: 33.214444, lon: 126.251111 },
-  { code: 'DT_0028', name: '진도', lat: 34.377778, lon: 126.308611 },
-  { code: 'DT_0032', name: '강화대교', lat: 37.731944, lon: 126.522222 },
-  { code: 'DT_0020', name: '울산', lat: 35.501944, lon: 129.387222 },
-  { code: 'DT_0022', name: '성산포', lat: 33.474722, lon: 126.927778 },
-  { code: 'DT_0024', name: '장항', lat: 36.006944, lon: 126.6875 },
-  { code: 'DT_0026', name: '고흥발포', lat: 34.481111, lon: 127.342778 },
-  { code: 'DT_0027', name: '완도', lat: 34.315556, lon: 126.759722 },
-  { code: 'DT_0029', name: '거제도', lat: 34.801389, lon: 128.699167 },
-  { code: 'DT_0031', name: '거문도', lat: 34.028333, lon: 127.308889 },
-  { code: 'DT_0035', name: '흑산도', lat: 34.684167, lon: 125.435556 },
-  { code: 'DT_0044', name: '영종대교', lat: 37.545556, lon: 126.584444 },
-  { code: 'DT_0050', name: '태안', lat: 36.91305556, lon: 126.2388889 },
-  { code: 'DT_0051', name: '서천마량', lat: 36.12888889, lon: 126.4952778 },
-  { code: 'DT_0049', name: '광양', lat: 34.903672, lon: 127.754836 },
-  { code: 'DT_0056', name: '부산항신항', lat: 35.0775, lon: 128.786944 },
-  { code: 'DT_0057', name: '동해항', lat: 37.494722, lon: 129.143889 },
-  { code: 'DT_0055', name: '순천만', lat: 34.88411111, lon: 127.5125556 },
-  { code: 'DT_0058', name: '경인항', lat: 37.560833, lon: 126.601111 },
-  { code: 'DT_0038', name: '굴업도', lat: 37.194444, lon: 125.995 },
-  { code: 'DT_0025', name: '보령', lat: 36.406389, lon: 126.486111 },
-  { code: 'DT_0001', name: '인천', lat: 37.451944, lon: 126.592222 },
-  { code: 'DT_0052', name: '인천송도', lat: 37.33805556, lon: 126.5861111 },
-  { code: 'DT_0014', name: '통영', lat: 34.827778, lon: 128.434722 },
-  { code: 'DT_0037', name: '어청도', lat: 36.117222, lon: 125.984722 },
-  { code: 'DT_0043', name: '영흥도', lat: 37.23861111, lon: 126.4286111 },
-  { code: 'DT_0061', name: '삼천포', lat: 34.924167, lon: 128.069722 },
-  { code: 'DT_0068', name: '위도', lat: 35.61808444, lon: 126.3018158 },
-  { code: 'DT_0065', name: '덕적도', lat: 37.226333, lon: 126.156556 },
-  { code: 'DT_0066', name: '향화도', lat: 35.167667, lon: 126.359556 },
-  { code: 'DT_0067', name: '안흥', lat: 36.67463889, lon: 126.1295556 },
-  { code: 'DT_0091', name: '포항', lat: 36.047128, lon: 129.383806 },
-  { code: 'DT_0063', name: '가덕도', lat: 35.024178, lon: 128.810933 },
-  { code: 'DT_0062', name: '마산', lat: 35.1975, lon: 128.576389 },
-  { code: 'DT_0092', name: '여호항', lat: 34.661944, lon: 127.469167 },
-  { code: 'DT_0094', name: '서거차도', lat: 34.25142222, lon: 125.91545 },
-  { code: 'DT_0093', name: '소무의도', lat: 37.373069, lon: 126.440066 },
-];
+// 관측소 목록은 data/tide_stations.json에 분리해서, 배낚시 데이터의 "내륙 좌표 걸러내기"
+// 스크립트(data/scripts/filter_boat_spots.js)에서도 같은 좌표 기준(실제 해안선 위 지점들)을
+// 재사용할 수 있게 했습니다.
+const TIDE_STATIONS = require('./data/tide_stations.json');
 
 function findNearestTideStation(lat, lon) {
-  let best = null;
-  let bestDist = Infinity;
-  for (const st of TIDE_STATIONS) {
-    const d = haversineMeters(lat, lon, st.lat, st.lon);
-    if (d < bestDist) {
-      bestDist = d;
-      best = st;
-    }
+  const list = findNearestTideStations(lat, lon, 1);
+  return list[0] || null;
+}
+
+// 가까운 순서대로 관측소 여러 곳을 반환합니다. 조석예보 API는 관측소에 따라 그날 예보 데이터가
+// 아예 없는(=정상 응답인데 items가 빈 배열인) 경우가 있어서, 가장 가까운 관측소 하나만 보고
+// 포기하지 않고 순서대로 몇 곳을 더 시도해보기 위해 씁니다.
+function findNearestTideStations(lat, lon, n) {
+  return TIDE_STATIONS.map((st) => ({ ...st, distanceKm: Math.round((haversineMeters(lat, lon, st.lat, st.lon) / 1000) * 10) / 10 }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, n);
+}
+
+// data.go.kr 계열 공공API가 공통으로 쓰는 게이트웨이 레벨 에러 코드표 (서비스키/URL 문제일 때
+// type=json을 요청해도 이 형식의 XML 에러가 내려오는 경우가 있어 별도로 처리합니다)
+const OPENAPI_ERROR_HINTS = {
+  '1': '애플리케이션 오류',
+  '4': 'HTTP 오류',
+  '10': '요청 파라미터가 올바르지 않습니다.',
+  '11': '필수 요청 파라미터가 누락되었습니다.',
+  '12': '해당 오픈API 서비스를 찾을 수 없습니다 (엔드포인트명이 틀렸을 수 있습니다).',
+  '20': '서비스 접근이 거부되었습니다.',
+  '21': '일시적으로 사용할 수 없는 서비스키입니다.',
+  '22': '일일 요청 제한 횟수를 초과했습니다.',
+  '30': '등록되지 않은 서비스키입니다 (활용신청 후 승인 대기 중일 수 있습니다).',
+  '31': '기한이 만료된 서비스키입니다.',
+  '32': '등록되지 않은 IP에서의 요청입니다 (IP 화이트리스트 등록이 필요할 수 있습니다).',
+  '33': '서명되지 않은 요청입니다.',
+};
+
+function extractOpenApiError(text) {
+  const msg = /<returnAuthMsg>([^<]*)<\/returnAuthMsg>/.exec(text)?.[1]
+    || /<errMsg>([^<]*)<\/errMsg>/.exec(text)?.[1]
+    || /<resultMsg>([^<]*)<\/resultMsg>/.exec(text)?.[1];
+  const code = /<returnReasonCode>([^<]*)<\/returnReasonCode>/.exec(text)?.[1]
+    || /<resultCode>([^<]*)<\/resultCode>/.exec(text)?.[1];
+  if (!msg && !code) return null;
+  const hint = code && OPENAPI_ERROR_HINTS[code];
+  return { code: code || null, msg: msg || null, hint: hint || null };
+}
+
+// 공공데이터포털 "조석예보(고, 저조) 조회 서비스" (서비스ID SV-AP-04-006, 오퍼레이션
+// getTideFcstHghLwApi) — data.go.kr에서 받은 공식 "오픈API 활용가이드" 문서로 확인된 실제 스펙입니다.
+//   엔드포인트: https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService
+//   필수 파라미터: serviceKey, obsCode / 옵션: reqDate(YYYYMMDD), type(xml|json), numOfRows, pageNo
+//   응답 items: obsvtrNm, lot(경도), lat(위도), predcDt("YYYY-MM-DD HH:MM"), predcTdlvVl(cm),
+//     extrSe(1=오전고조, 2=오전저조, 3=오후고조, 4=오후저조)
+//
+// 관측소 하나에 대해 KHOA에 실제로 요청을 보내고 결과를 구조화해서 돌려줍니다. 반환값의 kind로
+// 호출 쪽에서 무슨 일이 있었는지 구분합니다:
+//   'data'    - 정상 응답이고 고조/저조 시각이 1개 이상 있음
+//   'empty'   - 정상 응답(resultCode 00)인데 그 관측소/날짜엔 예보 항목이 0개 — 관측소마다 있을 수
+//               있는 정상적인 경우라, 이 경우만 다른(다음으로 가까운) 관측소로 재시도해볼 가치가 있음
+//   'error'   - KHOA가 명시적으로 에러를 반환(서비스키/파라미터 문제 등) — 다른 관측소로 바꿔도
+//               똑같이 실패할 가능성이 높은 종류라 재시도하지 않고 바로 사용자에게 보여줌
+// date를 안 주면(null/undefined) reqDate 파라미터 자체를 아예 안 보내서, KHOA가 문서에 적힌
+// 기본값("현재일자")을 그대로 쓰게 합니다 — 우리가 계산한 날짜와 KHOA 서버가 판단하는 "오늘"이
+// 어긋나서 빈 결과가 나올 가능성을 배제해보기 위한 용도입니다 (공식 요청 예제에도 reqDate가
+// 아예 빠져 있습니다).
+async function fetchKhoaTide(key, obsCode, date) {
+  // data.go.kr 서비스키는 "인코딩된 키"(이미 %2F 등으로 퍼센트인코딩된 상태)로 발급되는 경우와
+  // "디코딩된 키"(원문)로 발급되는 경우가 있어, 값에 %XX 패턴이 이미 있으면 인코딩된 키로 보고
+  // 그대로 붙이고, 아니면 URLSearchParams가 정상적으로 인코딩하게 둡니다. (반대로 처리하면
+  // 이중 인코딩되어 인증이 깨집니다)
+  const looksPreEncoded = /%[0-9A-Fa-f]{2}/.test(key);
+  const params = new URLSearchParams();
+  params.set('obsCode', obsCode);
+  if (date) params.set('reqDate', date);
+  params.set('type', 'json');
+  params.set('numOfRows', '50');
+  params.set('pageNo', '1');
+  const base = 'https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService';
+  const url = `${base}?${params.toString()}&serviceKey=${looksPreEncoded ? key : encodeURIComponent(key)}`;
+
+  const r = await fetch(url);
+  const text = await r.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    // 서비스키/파라미터가 잘못되면 type=json을 요청해도 XML 에러가 내려올 수 있습니다.
+    return {
+      kind: 'error',
+      httpStatus: r.status,
+      contentType: r.headers.get('content-type') || null,
+      apiError: extractOpenApiError(text),
+      error: 'KHOA 응답이 JSON이 아닙니다. ServiceKey를 다시 확인해주세요.',
+      rawResponsePreview: text.slice(0, 1500),
+    };
   }
-  return best ? { ...best, distanceKm: Math.round((bestDist / 1000) * 10) / 10 } : null;
+
+  const header = data?.response?.header;
+  // resultCode는 스펙상 "00"(2자리, 앞에 0 포함)이라 JSON에서도 항상 문자열로 내려오지만,
+  // 혹시 모를 타입 차이에 안전하게 대응하기 위해 문자열로 변환해서 비교합니다.
+  const resultCode = header?.resultCode != null ? String(header.resultCode).trim() : null;
+  if (header && resultCode && resultCode !== '00') {
+    const hint = OPENAPI_ERROR_HINTS[resultCode] || null;
+    return {
+      kind: 'error',
+      error: header.resultMsg || 'KHOA 조석 API 오류',
+      apiError: { code: resultCode, msg: header.resultMsg || null, hint },
+    };
+  }
+
+  let items = data?.response?.body?.items?.item || [];
+  if (!Array.isArray(items)) items = [items];
+
+  const highTide = [];
+  const lowTide = [];
+  for (const it of items) {
+    const timeStr = (it.predcDt || '').split(' ')[1] || '';
+    if (!timeStr) continue;
+    // ⚠️ data.go.kr의 JSON 응답은 숫자처럼 생긴 값("1","2"...)을 문자열이 아니라 실제 숫자로
+    // 내려주는 경우가 흔합니다(예: extrSe: 2 대신 "2"). 엄격 비교(===)로 문자열만 비교하면
+    // 이 경우 전부 걸러져서 물때 시각이 하나도 안 나오는 버그가 생기므로, 항상 문자열로
+    // 변환해서 비교합니다.
+    const extrSe = it.extrSe != null ? String(it.extrSe).trim() : '';
+    if (extrSe === '1' || extrSe === '3') highTide.push(timeStr);
+    else if (extrSe === '2' || extrSe === '4') lowTide.push(timeStr);
+  }
+
+  const totalCount = data?.response?.body?.totalCount;
+  if (!highTide.length && !lowTide.length) {
+    return { kind: 'empty', totalCount: totalCount != null ? Number(totalCount) : 0, raw: items };
+  }
+  return {
+    kind: 'data',
+    highTide,
+    lowTide,
+    totalCount: totalCount != null ? Number(totalCount) : undefined,
+    raw: items,
+  };
 }
 
 app.get('/api/tide', async (req, res) => {
@@ -306,16 +465,31 @@ app.get('/api/tide', async (req, res) => {
   const lon = parseFloat(req.query.lng ?? req.query.lon);
   const date = req.query.date || new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
 
-  // 사용자가 직접 관측소 코드를 넣었으면 그걸 그대로 쓰고, 아니면 좌표 기준으로 가장 가까운
-  // 관측소를 자동으로 골라줍니다.
-  let obsCode = req.query.obsCode;
-  let station = null;
-  if (!obsCode && !Number.isNaN(lat) && !Number.isNaN(lon)) {
-    station = findNearestTideStation(lat, lon);
-    if (station) obsCode = station.code;
-  } else if (obsCode) {
-    station = TIDE_STATIONS.find((s) => s.code === obsCode) || null;
+  // 사용자가 직접 관측소 코드를 넣었으면 그 관측소만 시도하고, 아니면 좌표 기준으로 가까운
+  // 관측소 여러 곳(기본 4곳)을 후보로 둡니다 — 가장 가까운 관측소가 그날 예보 데이터가 없는
+  // 경우(정상 응답인데 items가 빈 배열)가 있어서, 그럴 때 바로 포기하지 않고 다음으로 가까운
+  // 관측소를 순서대로 시도해봅니다.
+  // 국립해양조사원 관측소는 전부 대한민국 해역에 있어서, 대한민국 범위 밖 좌표(예: 일본
+  // 낚시포인트)에서는 "가장 가까운 관측소"를 자동으로 골라도 사실 아주 멀리 떨어진 엉뚱한
+  // 값이라 의미가 없습니다. obsCode를 직접 지정하지 않았다면 이 경우 바로 "지원 범위 밖"으로
+  // 안내합니다.
+  if (!req.query.obsCode && !Number.isNaN(lat) && !Number.isNaN(lon) && !isInKorea(lat, lon)) {
+    return res.json({
+      unsupported: true,
+      message: '국립해양조사원 조석 예보는 대한민국 해역만 지원해서, 이 지점은 물때 정보를 제공할 수 없습니다.',
+    });
   }
+
+  let obsCode = req.query.obsCode;
+  let stationCandidates = [];
+  if (!obsCode && !Number.isNaN(lat) && !Number.isNaN(lon)) {
+    stationCandidates = findNearestTideStations(lat, lon, 4);
+  } else if (obsCode) {
+    const found = TIDE_STATIONS.find((s) => s.code === obsCode) || null;
+    stationCandidates = found ? [found] : [{ code: obsCode, name: null, distanceKm: null }];
+  }
+  const station = stationCandidates[0] || null;
+  if (!obsCode) obsCode = station?.code;
 
   if (!key || !obsCode) {
     return res.json({
@@ -331,115 +505,72 @@ app.get('/api/tide', async (req, res) => {
     });
   }
 
-  // data.go.kr 계열 공공API가 공통으로 쓰는 게이트웨이 레벨 에러 코드표 (서비스키/URL 문제일 때
-  // type=json을 요청해도 이 형식의 XML 에러가 내려오는 경우가 있어 별도로 처리합니다)
-  const OPENAPI_ERROR_HINTS = {
-    '1': '애플리케이션 오류',
-    '4': 'HTTP 오류',
-    '10': '요청 파라미터가 올바르지 않습니다.',
-    '11': '필수 요청 파라미터가 누락되었습니다.',
-    '12': '해당 오픈API 서비스를 찾을 수 없습니다 (엔드포인트명이 틀렸을 수 있습니다).',
-    '20': '서비스 접근이 거부되었습니다.',
-    '21': '일시적으로 사용할 수 없는 서비스키입니다.',
-    '22': '일일 요청 제한 횟수를 초과했습니다.',
-    '30': '등록되지 않은 서비스키입니다 (활용신청 후 승인 대기 중일 수 있습니다).',
-    '31': '기한이 만료된 서비스키입니다.',
-    '32': '등록되지 않은 IP에서의 요청입니다 (IP 화이트리스트 등록이 필요할 수 있습니다).',
-    '33': '서명되지 않은 요청입니다.',
-  };
-
-  function extractOpenApiError(text) {
-    const msg = /<returnAuthMsg>([^<]*)<\/returnAuthMsg>/.exec(text)?.[1]
-      || /<errMsg>([^<]*)<\/errMsg>/.exec(text)?.[1]
-      || /<resultMsg>([^<]*)<\/resultMsg>/.exec(text)?.[1];
-    const code = /<returnReasonCode>([^<]*)<\/returnReasonCode>/.exec(text)?.[1]
-      || /<resultCode>([^<]*)<\/resultCode>/.exec(text)?.[1];
-    if (!msg && !code) return null;
-    const hint = code && OPENAPI_ERROR_HINTS[code];
-    return { code: code || null, msg: msg || null, hint: hint || null };
-  }
-
-  // 공공데이터포털 "조석예보(고, 저조) 조회 서비스" (서비스ID SV-AP-04-006, 오퍼레이션
-  // getTideFcstHghLwApi) — data.go.kr에서 받은 공식 "오픈API 활용가이드" 문서로 확인된 실제 스펙입니다.
-  //   엔드포인트: https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService
-  //   필수 파라미터: serviceKey, obsCode / 옵션: reqDate(YYYYMMDD), type(xml|json), numOfRows, pageNo
-  //   응답 items: obsvtrNm, lot(경도), lat(위도), predcDt("YYYY-MM-DD HH:MM"), predcTdlvVl(cm),
-  //     extrSe(1=오전고조, 2=오전저조, 3=오후고조, 4=오후저조)
   try {
-    // data.go.kr 서비스키는 "인코딩된 키"(이미 %2F 등으로 퍼센트인코딩된 상태)로 발급되는 경우와
-    // "디코딩된 키"(원문)로 발급되는 경우가 있어, 값에 %XX 패턴이 이미 있으면 인코딩된 키로 보고
-    // 그대로 붙이고, 아니면 URLSearchParams가 정상적으로 인코딩하게 둡니다. (반대로 처리하면
-    // 이중 인코딩되어 인증이 깨집니다)
-    const looksPreEncoded = /%[0-9A-Fa-f]{2}/.test(key);
-    const params = new URLSearchParams();
-    params.set('obsCode', obsCode);
-    params.set('reqDate', date);
-    params.set('type', 'json');
-    params.set('numOfRows', '50');
-    params.set('pageNo', '1');
-    const base = 'https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService';
-    const url = `${base}?${params.toString()}&serviceKey=${looksPreEncoded ? key : encodeURIComponent(key)}`;
+    let lastEmpty = null;
+    let triedStations = [];
+    for (const candidate of req.query.obsCode ? [station] : stationCandidates) {
+      const result = await fetchKhoaTide(key, candidate.code, date);
+      triedStations.push(candidate.name || candidate.code);
 
-    const r = await fetch(url);
-    const text = await r.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      // 서비스키/파라미터가 잘못되면 type=json을 요청해도 XML 에러가 내려올 수 있습니다.
-      const apiError = extractOpenApiError(text);
-      return res.status(502).json({
-        error: 'KHOA 응답이 JSON이 아닙니다. ServiceKey를 다시 확인해주세요.',
-        httpStatus: r.status,
-        contentType: r.headers.get('content-type') || null,
-        apiError,
-        rawResponsePreview: text.slice(0, 1500),
-      });
+      if (result.kind === 'error') {
+        // 서비스키/파라미터 문제 등은 관측소를 바꿔도 똑같이 실패할 종류라 바로 응답합니다.
+        return res.status(502).json({
+          error: result.error,
+          httpStatus: result.httpStatus,
+          contentType: result.contentType,
+          apiError: result.apiError,
+          rawResponsePreview: result.rawResponsePreview,
+          obsCode: candidate.code,
+          station: candidate,
+          date,
+        });
+      }
+
+      if (result.kind === 'data') {
+        return res.json({
+          mocked: false,
+          obsCode: candidate.code,
+          station: candidate,
+          date,
+          highTide: result.highTide,
+          lowTide: result.lowTide,
+          totalCount: result.totalCount,
+          raw: result.raw,
+          fallbackFrom: triedStations.length > 1 ? triedStations.slice(0, -1) : undefined,
+        });
+      }
+
+      // kind === 'empty': 이 관측소는 그날 예보 데이터가 없음 — 다음 후보로 넘어갑니다.
+      lastEmpty = { obsCode: candidate.code, station: candidate, raw: result.raw };
     }
 
-    const header = data?.response?.header;
-    // resultCode는 스펙상 "00"(2자리, 앞에 0 포함)이라 JSON에서도 항상 문자열로 내려오지만,
-    // 혹시 모를 타입 차이에 안전하게 대응하기 위해 문자열로 변환해서 비교합니다.
-    const resultCode = header?.resultCode != null ? String(header.resultCode).trim() : null;
-    if (header && resultCode && resultCode !== '00') {
-      const hint = OPENAPI_ERROR_HINTS[resultCode] || null;
-      return res.status(502).json({
-        error: header.resultMsg || 'KHOA 조석 API 오류',
-        apiError: { code: resultCode, msg: header.resultMsg || null, hint },
-        obsCode,
+    // 가까운 관측소를 여러 곳 시도했는데도 전부 빈 응답이면, 우리가 계산한 날짜(reqDate)가
+    // KHOA 쪽 "오늘" 판단과 어긋났을 가능성을 배제하기 위해, reqDate를 아예 안 보내고
+    // (KHOA 기본값인 "현재일자" 사용) 가장 가까운 관측소로 한 번 더 시도해봅니다.
+    const dateOmittedResult = await fetchKhoaTide(key, station.code, null);
+    if (dateOmittedResult.kind === 'data') {
+      return res.json({
+        mocked: false,
+        obsCode: station.code,
         station,
         date,
+        dateOmitted: true,
+        highTide: dateOmittedResult.highTide,
+        lowTide: dateOmittedResult.lowTide,
+        totalCount: dateOmittedResult.totalCount,
+        raw: dateOmittedResult.raw,
       });
     }
 
-    let items = data?.response?.body?.items?.item || [];
-    if (!Array.isArray(items)) items = [items];
-
-    const highTide = [];
-    const lowTide = [];
-    for (const it of items) {
-      const timeStr = (it.predcDt || '').split(' ')[1] || '';
-      if (!timeStr) continue;
-      // ⚠️ data.go.kr의 JSON 응답은 숫자처럼 생긴 값("1","2"...)을 문자열이 아니라 실제 숫자로
-      // 내려주는 경우가 흔합니다(예: extrSe: 2 대신 "2"). 엄격 비교(===)로 문자열만 비교하면
-      // 이 경우 전부 걸러져서 물때 시각이 하나도 안 나오는 버그가 생기므로, 항상 문자열로
-      // 변환해서 비교합니다.
-      const extrSe = it.extrSe != null ? String(it.extrSe).trim() : '';
-      if (extrSe === '1' || extrSe === '3') highTide.push(timeStr);
-      else if (extrSe === '2' || extrSe === '4') lowTide.push(timeStr);
-    }
-
-    const totalCount = data?.response?.body?.totalCount;
-
+    // 그래도 안 되면, 시도했던 관측소들과 원본 응답(raw)을 그대로 보여줘서 정말 데이터가 없는
+    // 건지 다른 문제인지 판단할 수 있게 합니다.
     res.json({
       mocked: false,
-      obsCode,
-      station,
+      obsCode: lastEmpty.obsCode,
+      station: lastEmpty.station,
       date,
-      highTide: highTide.length ? highTide : undefined,
-      lowTide: lowTide.length ? lowTide : undefined,
-      totalCount: totalCount != null ? Number(totalCount) : undefined,
-      raw: items,
+      raw: lastEmpty.raw,
+      triedStations,
     });
   } catch (err) {
     console.error(err);
@@ -480,6 +611,18 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
+// Overpass 공개 서버(overpass-api.de)가 최근 User-Agent가 없거나 너무 평범한(기본 fetch/curl)
+// 요청, Accept-Encoding이 없는 요청 등을 "봇으로 추정"해서 406 Not Acceptable로 거부하는
+// 사례가 늘었습니다 (AI 크롤러 과부하 때문에 차단 기준이 강화된 것으로 보임). 그래서 일반
+// 브라우저/앱이 보낼 법한 헤더를 명시적으로 붙여서 보냅니다.
+const OVERPASS_HEADERS = {
+  'Content-Type': 'text/plain',
+  'User-Agent': 'fishing-map-kr/1.0 (+https://github.com/; contact via GitHub issues)',
+  Accept: '*/*',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
+};
+
 function buildOverpassQuery(radius, lat, lon) {
   // node뿐 아니라 건물(way)/부지(relation)로 매핑된 상점도 잡기 위해 nwr + out center 사용
   return `
@@ -508,6 +651,8 @@ const OVERPASS_ENDPOINTS = process.env.OVERPASS_ENDPOINT
       'https://overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
       'https://overpass.osm.ch/api/interpreter',
+      'https://z.overpass-api.de/api/interpreter',
+      'https://lz4.overpass-api.de/api/interpreter',
     ];
 
 function parseOverpassElements(data, lat, lon) {
@@ -531,7 +676,7 @@ async function queryOverpassEndpoint(endpoint, query, lat, lon, timeoutMs) {
   try {
     const r = await fetchWithTimeout(
       endpoint,
-      { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: query },
+      { method: 'POST', headers: OVERPASS_HEADERS, body: query },
       timeoutMs
     );
     if (!r.ok) throw new Error(`Overpass HTTP ${r.status} (${endpoint})`);
@@ -627,7 +772,11 @@ app.get('/api/nearby', async (req, res) => {
     return res.status(400).json({ error: 'lat, lng 쿼리 파라미터가 필요합니다.' });
   }
 
-  const kakaoKey = process.env.KAKAO_REST_API_KEY;
+  // 카카오 로컬 API는 대한민국 좌표만 결과가 나옵니다 — 일본 낚시포인트처럼 범위 밖 좌표에서
+  // 카카오 키가 설정돼 있다고 그대로 쓰면 빈 결과만 나오니, 이 경우엔 전 세계 어디서나 되는
+  // Overpass(OSM)를 대신 씁니다.
+  const useKakao = !!process.env.KAKAO_REST_API_KEY && isInKorea(lat, lon);
+  const kakaoKey = useKakao ? process.env.KAKAO_REST_API_KEY : null;
   const provider = kakaoKey ? 'kakao' : 'overpass';
   const cacheKey = `${provider},${lat.toFixed(4)},${lon.toFixed(4)},${radius}`;
   const cached = nearbyCache.get(cacheKey);
